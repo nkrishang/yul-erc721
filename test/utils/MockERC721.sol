@@ -19,22 +19,11 @@ contract MockERC721 is ERC721, Brutalizer {
     }
 
     function burn(uint256 id) public payable virtual {
-        address owner = _ownerOf[id];
-
-        address caller = msg.sender;
-        if(caller != owner && !isApprovedForAll[owner][caller] && caller != getApproved[id]) {
-            revert NotOwnerNorApproved();
-        }
-
-        _burn(id);
-    }
-
-    function uncheckedBurn(uint256 id) public virtual {
         _burn(id);
     }
 
     function safeMint(address to, uint256 id) public virtual {
-        _safeMint(_brutalized(to), id);
+        _safeMint(_brutalized(to), id, "");
     }
 
     function safeMint(address to, uint256 id, bytes calldata data) public virtual {
@@ -51,10 +40,6 @@ contract MockERC721 is ERC721, Brutalizer {
 
     function transferFrom(address from, address to, uint256 id) public payable virtual override {
         super.transferFrom(_brutalized(from), _brutalized(to), id);
-    }
-
-    function uncheckedTransferFrom(address from, address to, uint256 id) public payable virtual {
-        _transfer(_brutalized(address(0)), _brutalized(from), _brutalized(to), id);
     }
 
     function safeTransferFrom(address from, address to, uint256 id)

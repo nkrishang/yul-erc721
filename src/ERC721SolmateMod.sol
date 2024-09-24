@@ -104,54 +104,6 @@ abstract contract ERC721 {
     //////////////////////////////////////////////////////////////*/
 
     function approve(address spender, uint256 id) public payable virtual {
-        _approve(spender, id);
-    }
-
-    function setApprovalForAll(address operator, bool approved) public virtual {
-        _setApprovalForAll(msg.sender, operator, approved);
-    }
-
-    function transferFrom(
-        address from,
-        address to,
-        uint256 id
-    ) public payable virtual {
-        _transfer(msg.sender, from, to, id);
-    }
-
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 id
-    ) public payable virtual {
-        safeTransferFrom(from, to, id, "");
-    }
-
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 id,
-        bytes memory data
-    ) public payable virtual {
-        _safeTransfer(msg.sender, from, to, id, data);
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                              ERC165 LOGIC
-    //////////////////////////////////////////////////////////////*/
-
-    function supportsInterface(bytes4 interfaceId) public view virtual returns (bool) {
-        return
-            interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
-            interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
-            interfaceId == 0x5b5e139f; // ERC165 Interface ID for ERC721Metadata
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                INTERNAL MINT/BURN/TRANSFER/APPROVE LOGIC
-    //////////////////////////////////////////////////////////////*/
-
-    function _approve(address spender, uint256 id) internal virtual {
         address owner = _ownerOf[id];
         if(owner == address(0)) {
             revert TokenDoesNotExist();
@@ -167,13 +119,17 @@ abstract contract ERC721 {
         emit Approval(owner, spender, id);
     }
 
-    function _setApprovalForAll(address owner, address operator, bool approved) internal virtual {
-        isApprovedForAll[owner][operator] = approved;
+    function setApprovalForAll(address operator, bool approved) public virtual {
+        isApprovedForAll[msg.sender][operator] = approved;
 
-        emit ApprovalForAll(owner, operator, approved);
+        emit ApprovalForAll(msg.sender, operator, approved);
     }
 
-    function _transfer(address operator, address from, address to, uint256 id) internal virtual {
+    function transferFrom(
+        address from,
+        address to,
+        uint256 id
+    ) public payable virtual {
         address owner = _ownerOf[id];
 
         if(owner == address(0)) {
@@ -188,7 +144,7 @@ abstract contract ERC721 {
             revert TransferToZeroAddress();
         }
 
-        if(operator != owner && !isApprovedForAll[owner][operator] && operator != getApproved[id]) {
+        if(msg.sender != owner && !isApprovedForAll[owner][msg.sender] && msg.sender != getApproved[id]) {
             revert NotOwnerNorApproved();
         }
 
@@ -207,14 +163,38 @@ abstract contract ERC721 {
         emit Transfer(from, to, id);
     }
 
-    function _safeTransfer(address operator, address from, address to, uint256 id) internal virtual {
-        _safeTransfer(operator, from, to, id, "");
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id
+    ) public payable virtual {
+        safeTransferFrom(from, to, id, "");
     }
 
-    function _safeTransfer(address operator, address from, address to, uint256 id, bytes memory data) internal virtual {
-        _transfer(operator, from, to, id);
-        _safeTransferCheck(operator, from, to, id, data);
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id,
+        bytes memory data
+    ) public payable virtual {
+        transferFrom(from, to, id);
+        _safeTransferCheck(msg.sender, from, to, id, data);
     }
+
+    /*//////////////////////////////////////////////////////////////
+                              ERC165 LOGIC
+    //////////////////////////////////////////////////////////////*/
+
+    function supportsInterface(bytes4 interfaceId) public view virtual returns (bool) {
+        return
+            interfaceId == 0x01ffc9a7 || // ERC165 Interface ID for ERC165
+            interfaceId == 0x80ac58cd || // ERC165 Interface ID for ERC721
+            interfaceId == 0x5b5e139f; // ERC165 Interface ID for ERC721Metadata
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        INTERNAL MINT/BURN LOGIC
+    //////////////////////////////////////////////////////////////*/
 
     function _mint(address to, uint256 id) internal virtual {
         if (to == address(0)) {
@@ -242,6 +222,11 @@ abstract contract ERC721 {
             revert TokenDoesNotExist();
         }
 
+        address caller = msg.sender;
+        if(caller != owner && !isApprovedForAll[owner][caller] && caller != getApproved[id]) {
+            revert NotOwnerNorApproved();
+        }
+
         // Ownership check above ensures no underflow.
         unchecked {
             _balanceOf[owner]--;
@@ -252,10 +237,6 @@ abstract contract ERC721 {
         delete getApproved[id];
 
         emit Transfer(owner, address(0), id);
-    }
-
-    function _safeMint(address to, uint256 id) internal virtual {
-        _safeMint(to, id, "");
     }
 
     function _safeMint(

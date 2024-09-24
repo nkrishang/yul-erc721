@@ -216,28 +216,23 @@ contract ERC721Test is SoladyTest {
         _expectMintEvent(owner, id);
         token.mint(owner, id);
 
-        if (_randomChance(2)) {
-            _expectBurnEvent(owner, id);
-            token.uncheckedBurn(id);
-        } else {
-            vm.expectRevert(ERC721.NotOwnerNorApproved.selector);
+        vm.expectRevert(ERC721.NotOwnerNorApproved.selector);
+        token.burn(id);
+        uint256 r = _random() % 3;
+        if (r == 0) {
+            _transferFrom(owner, owner, address(this), id);
+            _expectBurnEvent(address(this), id);
             token.burn(id);
-            uint256 r = _random() % 3;
-            if (r == 0) {
-                _transferFrom(owner, owner, address(this), id);
-                _expectBurnEvent(address(this), id);
-                token.burn(id);
-            }
-            if (r == 1) {
-                _setApprovalForAll(owner, address(this), true);
-                _expectBurnEvent(owner, id);
-                token.burn(id);
-            }
-            if (r == 2) {
-                _approve(owner, address(this), id);
-                _expectBurnEvent(owner, id);
-                token.burn(id);
-            }
+        }
+        if (r == 1) {
+            _setApprovalForAll(owner, address(this), true);
+            _expectBurnEvent(owner, id);
+            token.burn(id);
+        }
+        if (r == 2) {
+            _approve(owner, address(this), id);
+            _expectBurnEvent(owner, id);
+            token.burn(id);
         }
 
         assertEq(token.balanceOf(owner), 0);
@@ -332,7 +327,9 @@ contract ERC721Test is SoladyTest {
             }
             for (uint256 j; j != 2; ++j) {
                 for (uint256 i; i != tokens[j].length; ++i) {
-                    token.uncheckedBurn(tokens[j][i]);
+                    address owner = token.ownerOf(tokens[j][i]);
+                    vm.prank(owner);
+                    token.burn(tokens[j][i]);
                 }
             }
             for (uint256 j; j != 2; ++j) {
@@ -381,7 +378,8 @@ contract ERC721Test is SoladyTest {
 
         _approve(address(this), spender, id);
 
-        token.uncheckedBurn(id);
+        vm.prank(spender);
+        token.burn(id);
 
         assertEq(token.balanceOf(address(this)), 0);
 
@@ -425,15 +423,12 @@ contract ERC721Test is SoladyTest {
         } else {
             (address temp,) = _randomSigner();
             while (temp == from || temp == to) (temp,) = _randomSigner();
-            if (_randomChance(2)) {
-                _expectTransferEvent(from, temp, id);
-                token.uncheckedTransferFrom(from, temp, id);
-            } else {
-                _expectTransferEvent(from, temp, id);
-                _transferFrom(from, from, temp, id);
-            }
+            
+            _expectTransferEvent(from, temp, id);
+            _transferFrom(from, from, temp, id);
+
             _expectTransferEvent(temp, to, id);
-            token.uncheckedTransferFrom(temp, to, id);
+            _transferFrom(temp, temp, to, id);
         }
 
         assertEq(_getApproved(id), address(0));
@@ -581,7 +576,7 @@ contract ERC721Test is SoladyTest {
 
     function testBurnNonExistentReverts(uint256 id) public {
         vm.expectRevert(ERC721.TokenDoesNotExist.selector);
-        token.uncheckedBurn(id);
+        token.burn(id);
     }
 
     function testDoubleBurnReverts(uint256 id) public {
@@ -589,9 +584,11 @@ contract ERC721Test is SoladyTest {
 
         token.mint(to, id);
 
-        token.uncheckedBurn(id);
+        vm.prank(to);
+        token.burn(id);
+
         vm.expectRevert(ERC721.TokenDoesNotExist.selector);
-        token.uncheckedBurn(id);
+        token.burn(id);
     }
 
     function testApproveNonExistentReverts(uint256 id, address to) public {
