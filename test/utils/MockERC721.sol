@@ -45,16 +45,8 @@ contract MockERC721 is ERC721, Brutalizer {
         super.approve(_brutalized(account), id);
     }
 
-    function directApprove(address account, uint256 id) public virtual {
-        _approve(_brutalized(account), id);
-    }
-
     function setApprovalForAll(address operator, bool approved) public virtual override {
         super.setApprovalForAll(_brutalized(operator), approved);
-    }
-
-    function directSetApprovalForAll(address operator, bool approved) public virtual {
-        _setApprovalForAll(_brutalized(msg.sender), _brutalized(operator), approved);
     }
 
     function transferFrom(address from, address to, uint256 id) public payable virtual override {
@@ -63,10 +55,6 @@ contract MockERC721 is ERC721, Brutalizer {
 
     function uncheckedTransferFrom(address from, address to, uint256 id) public payable virtual {
         _transfer(_brutalized(address(0)), _brutalized(from), _brutalized(to), id);
-    }
-
-    function directTransferFrom(address from, address to, uint256 id) public virtual {
-        _transfer(_brutalized(msg.sender), _brutalized(from), _brutalized(to), id);
     }
 
     function safeTransferFrom(address from, address to, uint256 id)
@@ -78,10 +66,6 @@ contract MockERC721 is ERC721, Brutalizer {
         super.safeTransferFrom(_brutalized(from), _brutalized(to), id);
     }
 
-    function directSafeTransferFrom(address from, address to, uint256 id) public virtual {
-        _safeTransfer(_brutalized(msg.sender), _brutalized(from), _brutalized(to), id);
-    }
-
     function safeTransferFrom(address from, address to, uint256 id, bytes memory data)
         public
         payable
@@ -89,13 +73,6 @@ contract MockERC721 is ERC721, Brutalizer {
         override
     {
         super.safeTransferFrom(_brutalized(from), _brutalized(to), id, data);
-    }
-
-    function directSafeTransferFrom(address from, address to, uint256 id, bytes calldata data)
-        public
-        virtual
-    {
-        _safeTransfer(_brutalized(msg.sender), _brutalized(from), _brutalized(to), id, data);
     }
 
     function isApprovedOrOwner(address account, uint256 id) public view virtual returns (bool) {

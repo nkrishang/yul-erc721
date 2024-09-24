@@ -7,7 +7,8 @@ pragma solidity >=0.8.0;
 /// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol)
 /// @author Solady (https://github.com/vectorized/solady/blob/main/src/tokens/ERC721.sol)
 ///
-/// @dev Note:
+/// @dev Note: WARNING! This mock is strictly intended for testing purposes only.
+///
 ///        This is Solmate's ERC-721 modified to work with Solady ERC721 test cases. It does not include
 ///        auxData or extraData, or any significant designs from the Solady implementation. The contract
 ///        may contain redundancies.

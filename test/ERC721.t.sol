@@ -98,43 +98,53 @@ contract ERC721Test is SoladyTest {
         emit ApprovalForAll(_cleaned(owner), _cleaned(operator), approved);
     }
 
-    function _transferFrom(address from, address to, uint256 id) internal {
+    function _transferFrom(address caller, address from, address to, uint256 id) internal {
         if (_randomChance(2)) {
+            vm.prank(caller);
             token.transferFrom(from, to, id);
         } else {
-            token.directTransferFrom(from, to, id);
+            vm.prank(_brutalized(caller));
+            token.transferFrom(from, to, id);
         }
     }
 
-    function _safeTransferFrom(address from, address to, uint256 id) internal {
+    function _safeTransferFrom(address caller, address from, address to, uint256 id) internal {
         if (_randomChance(2)) {
+            vm.prank(caller);
             token.safeTransferFrom(from, to, id);
         } else {
-            token.directSafeTransferFrom(from, to, id);
+            vm.prank(_brutalized(caller));
+            token.safeTransferFrom(from, to, id);
         }
     }
 
-    function _safeTransferFrom(address from, address to, uint256 id, bytes memory data) internal {
+    function _safeTransferFrom(address caller, address from, address to, uint256 id, bytes memory data) internal {
         if (_randomChance(2)) {
+            vm.prank(caller);
             token.safeTransferFrom(from, to, id, data);
         } else {
-            token.directSafeTransferFrom(from, to, id, data);
+            vm.prank(_brutalized(caller));
+            token.safeTransferFrom(from, to, id, data);
         }
     }
 
-    function _approve(address spender, uint256 id) internal {
+    function _approve(address caller, address spender, uint256 id) internal {
         if (_randomChance(2)) {
+            vm.prank(caller);
             token.approve(spender, id);
         } else {
-            token.directApprove(spender, id);
+            vm.prank(_brutalized(caller));
+            token.approve(spender, id);
         }
     }
 
-    function _setApprovalForAll(address operator, bool approved) internal {
+    function _setApprovalForAll(address caller, address operator, bool approved) internal {
         if (_randomChance(2)) {
+            vm.prank(caller);
             token.setApprovalForAll(operator, approved);
         } else {
-            token.directSetApprovalForAll(operator, approved);
+            vm.prank(_brutalized(caller));
+            token.setApprovalForAll(operator, approved);
         }
     }
 
@@ -214,20 +224,17 @@ contract ERC721Test is SoladyTest {
             token.burn(id);
             uint256 r = _random() % 3;
             if (r == 0) {
-                vm.prank(owner);
-                _transferFrom(owner, address(this), id);
+                _transferFrom(owner, owner, address(this), id);
                 _expectBurnEvent(address(this), id);
                 token.burn(id);
             }
             if (r == 1) {
-                vm.prank(owner);
-                _setApprovalForAll(address(this), true);
+                _setApprovalForAll(owner, address(this), true);
                 _expectBurnEvent(owner, id);
                 token.burn(id);
             }
             if (r == 2) {
-                vm.prank(owner);
-                _approve(address(this), id);
+                _approve(owner, address(this), id);
                 _expectBurnEvent(owner, id);
                 token.burn(id);
             }
@@ -275,9 +282,8 @@ contract ERC721Test is SoladyTest {
             for (uint256 j; j != 2; ++j) {
                 assertEq(token.balanceOf(owners[j]), tokens[j].length);
                 for (uint256 i; i != tokens[j].length; ++i) {
-                    vm.prank(owners[j]);
                     _expectApprovalEvent(owners[j], address(this), tokens[j][i]);
-                    _approve(address(this), tokens[j][i]);
+                    _approve(owners[j], address(this), tokens[j][i]);
                 }
             }
             for (uint256 j; j != 2; ++j) {
@@ -286,7 +292,7 @@ contract ERC721Test is SoladyTest {
                     uint256 fromBalanceBefore = token.balanceOf(owners[j]);
                     uint256 toBalanceBefore = token.balanceOf(owners[j ^ 1]);
                     _expectTransferEvent(owners[j], owners[j ^ 1], tokens[j][i]);
-                    _transferFrom(owners[j], owners[j ^ 1], tokens[j][i]);
+                    _transferFrom(address(this), owners[j], owners[j ^ 1], tokens[j][i]);
                     assertEq(token.balanceOf(owners[j]), fromBalanceBefore - 1);
                     assertEq(token.balanceOf(owners[j ^ 1]), toBalanceBefore + 1);
                     assertEq(_getApproved(tokens[j][i]), address(0));
@@ -301,12 +307,11 @@ contract ERC721Test is SoladyTest {
                 for (uint256 j; j != 2; ++j) {
                     for (uint256 i; i != tokens[j].length; ++i) {
                         vm.expectRevert(ERC721.NotOwnerNorApproved.selector);
-                        _transferFrom(owners[j ^ 1], owners[j], tokens[j][i]);
-                        vm.prank(owners[j ^ 1]);
+                        _transferFrom(address(this), owners[j ^ 1], owners[j], tokens[j][i]);
                         _expectApprovalEvent(owners[j ^ 1], address(this), tokens[j][i]);
-                        _approve(address(this), tokens[j][i]);
+                        _approve(owners[j ^ 1], address(this), tokens[j][i]);
                         _expectTransferEvent(owners[j ^ 1], owners[j], tokens[j][i]);
-                        _transferFrom(owners[j ^ 1], owners[j], tokens[j][i]);
+                        _transferFrom(address(this), owners[j ^ 1], owners[j], tokens[j][i]);
                     }
                 }
             } else {
@@ -316,7 +321,7 @@ contract ERC721Test is SoladyTest {
                     token.setApprovalForAll(address(this), true);
                     for (uint256 i; i != tokens[j].length; ++i) {
                         _expectTransferEvent(owners[j ^ 1], owners[j], tokens[j][i]);
-                        _transferFrom(owners[j ^ 1], owners[j], tokens[j][i]);
+                        _transferFrom(address(this), owners[j ^ 1], owners[j], tokens[j][i]);
                     }
                 }
             }
@@ -346,20 +351,16 @@ contract ERC721Test is SoladyTest {
         token.mint(owner0, id);
         assertEq(token.isApprovedOrOwner(owner0, id), true);
 
-        vm.prank(owner0);
-        _transferFrom(owner0, owner1, id);
+        _transferFrom(owner0, owner0, owner1, id);
         assertEq(token.isApprovedOrOwner(owner0, id), false);
 
-        vm.prank(owner1);
-        _setApprovalForAll(owner0, true);
+        _setApprovalForAll(owner1, owner0, true);
         assertEq(token.isApprovedOrOwner(owner0, id), true);
 
-        vm.prank(owner1);
-        _setApprovalForAll(owner0, false);
+        _setApprovalForAll(owner1, owner0, false);
         assertEq(token.isApprovedOrOwner(owner0, id), false);
 
-        vm.prank(owner1);
-        _approve(owner0, id);
+        _approve(owner1, owner0, id);
         assertEq(token.isApprovedOrOwner(owner0, id), true);
     }
 
@@ -369,7 +370,7 @@ contract ERC721Test is SoladyTest {
         token.mint(address(this), id);
 
         _expectApprovalEvent(address(this), spender, id);
-        _approve(spender, id);
+        _approve(address(this), spender, id);
         assertEq(_getApproved(id), spender);
     }
 
@@ -378,7 +379,7 @@ contract ERC721Test is SoladyTest {
 
         token.mint(address(this), id);
 
-        _approve(spender, id);
+        _approve(address(this), spender, id);
 
         token.uncheckedBurn(id);
 
@@ -394,7 +395,7 @@ contract ERC721Test is SoladyTest {
         (address operator,) = _randomSigner();
         bool approved = _randomChance(2);
         _expectApprovalForAllEvent(address(this), operator, approved);
-        _setApprovalForAll(operator, approved);
+        _setApprovalForAll(address(this), operator, approved);
         assertEq(token.isApprovedForAll(address(this), operator), approved);
     }
 
@@ -406,23 +407,20 @@ contract ERC721Test is SoladyTest {
         if (_randomChance(2)) {
             uint256 r = _random() % 3;
             if (r == 0) {
-                vm.prank(from);
-                _approve(address(this), id);
+                _approve(from, address(this), id);
                 _expectTransferEvent(from, to, id);
-                _transferFrom(from, to, id);
+                _transferFrom(address(this), from, to, id);
             }
             if (r == 1) {
-                vm.prank(from);
-                _setApprovalForAll(address(this), true);
+                _setApprovalForAll(from, address(this), true);
                 _expectTransferEvent(from, to, id);
-                _transferFrom(from, to, id);
+                _transferFrom(address(this), from, to, id);
             }
             if (r == 2) {
-                vm.prank(from);
                 _expectTransferEvent(from, address(this), id);
-                _transferFrom(from, address(this), id);
+                _transferFrom(from, from, address(this), id);
                 _expectTransferEvent(address(this), to, id);
-                _transferFrom(address(this), to, id);
+                _transferFrom(address(this), address(this), to, id);
             }
         } else {
             (address temp,) = _randomSigner();
@@ -431,9 +429,8 @@ contract ERC721Test is SoladyTest {
                 _expectTransferEvent(from, temp, id);
                 token.uncheckedTransferFrom(from, temp, id);
             } else {
-                vm.prank(from);
                 _expectTransferEvent(from, temp, id);
-                _transferFrom(from, temp, id);
+                _transferFrom(from, from, temp, id);
             }
             _expectTransferEvent(temp, to, id);
             token.uncheckedTransferFrom(temp, to, id);
@@ -450,7 +447,7 @@ contract ERC721Test is SoladyTest {
 
         token.mint(address(this), id);
 
-        _transferFrom(address(this), to, id);
+        _transferFrom(address(this), address(this), to, id);
 
         assertEq(_getApproved(id), address(0));
         assertEq(_ownerOf(id), to);
@@ -463,10 +460,9 @@ contract ERC721Test is SoladyTest {
 
         token.mint(from, id);
 
-        vm.prank(from);
-        _setApprovalForAll(address(this), true);
+        _setApprovalForAll(from, address(this), true);
 
-        _transferFrom(from, to, id);
+        _transferFrom(address(this), from, to, id);
 
         assertEq(_getApproved(id), address(0));
         assertEq(_ownerOf(id), to);
@@ -479,10 +475,9 @@ contract ERC721Test is SoladyTest {
 
         token.mint(from, id);
 
-        vm.prank(from);
-        _setApprovalForAll(address(this), true);
+        _setApprovalForAll(from, address(this), true);
 
-        _safeTransferFrom(from, to, id);
+        _safeTransferFrom(address(this), from, to, id);
 
         assertEq(_getApproved(id), address(0));
         assertEq(_ownerOf(id), to);
@@ -497,10 +492,9 @@ contract ERC721Test is SoladyTest {
 
         token.mint(from, id);
 
-        vm.prank(from);
-        _setApprovalForAll(address(this), true);
+        _setApprovalForAll(from, address(this), true);
 
-        _safeTransferFrom(from, address(recipient), id);
+        _safeTransferFrom(address(this), from, address(recipient), id);
 
         assertEq(_getApproved(id), address(0));
         assertEq(_ownerOf(id), address(recipient));
@@ -520,10 +514,9 @@ contract ERC721Test is SoladyTest {
 
         token.mint(from, id);
 
-        vm.prank(from);
-        _setApprovalForAll(address(this), true);
+        _setApprovalForAll(from, address(this), true);
 
-        _safeTransferFrom(from, address(recipient), id, data);
+        _safeTransferFrom(address(this), from, address(recipient), id, data);
 
         assertEq(recipient.data(), data);
         assertEq(recipient.id(), id);
@@ -603,7 +596,7 @@ contract ERC721Test is SoladyTest {
 
     function testApproveNonExistentReverts(uint256 id, address to) public {
         vm.expectRevert(ERC721.TokenDoesNotExist.selector);
-        _approve(to, id);
+        _approve(address(this), to, id);
     }
 
     function testApproveUnauthorizedReverts(uint256 id) public {
@@ -611,12 +604,12 @@ contract ERC721Test is SoladyTest {
 
         token.mint(owner, id);
         vm.expectRevert(ERC721.NotOwnerNorApproved.selector);
-        _approve(to, id);
+        _approve(address(this), to, id);
     }
 
     function testTransferFromNotExistentReverts(address from, address to, uint256 id) public {
         vm.expectRevert(ERC721.TokenDoesNotExist.selector);
-        _transferFrom(from, to, id);
+        _transferFrom(address(this), from, to, id);
     }
 
     function testTransferFromWrongFromReverts(address to, uint256 id) public {
@@ -624,14 +617,14 @@ contract ERC721Test is SoladyTest {
 
         token.mint(owner, id);
         vm.expectRevert(ERC721.TransferFromIncorrectOwner.selector);
-        _transferFrom(from, to, id);
+        _transferFrom(address(this), from, to, id);
     }
 
     function testTransferFromToZeroReverts(uint256 id) public {
         token.mint(address(this), id);
 
         vm.expectRevert(ERC721.TransferToZeroAddress.selector);
-        _transferFrom(address(this), address(0), id);
+        _transferFrom(address(this), address(this), address(0), id);
     }
 
     function testTransferFromNotOwner(uint256 id) public {
@@ -640,14 +633,14 @@ contract ERC721Test is SoladyTest {
         token.mint(from, id);
 
         vm.expectRevert(ERC721.NotOwnerNorApproved.selector);
-        _transferFrom(from, to, id);
+        _transferFrom(address(this), from, to, id);
     }
 
     function testSafeTransferFromToNonERC721RecipientReverts(uint256 id) public {
         token.mint(address(this), id);
         address to = address(new NonERC721Recipient());
         vm.expectRevert(ERC721.TransferToNonERC721ReceiverImplementer.selector);
-        _safeTransferFrom(address(this), address(to), id);
+        _safeTransferFrom(address(this), address(this), address(to), id);
     }
 
     function testSafeTransferFromToNonERC721RecipientWithDataReverts(uint256 id, bytes memory data)
@@ -656,14 +649,14 @@ contract ERC721Test is SoladyTest {
         token.mint(address(this), id);
         address to = address(new NonERC721Recipient());
         vm.expectRevert(ERC721.TransferToNonERC721ReceiverImplementer.selector);
-        _safeTransferFrom(address(this), to, id, data);
+        _safeTransferFrom(address(this), address(this), to, id, data);
     }
 
     function testSafeTransferFromToRevertingERC721RecipientReverts(uint256 id) public {
         token.mint(address(this), id);
         address to = address(new RevertingERC721Recipient());
         vm.expectRevert(abi.encodePacked(ERC721TokenReceiver.onERC721Received.selector));
-        _safeTransferFrom(address(this), to, id);
+        _safeTransferFrom(address(this), address(this), to, id);
     }
 
     function testSafeTransferFromToRevertingERC721RecipientWithDataReverts(
@@ -673,14 +666,14 @@ contract ERC721Test is SoladyTest {
         token.mint(address(this), id);
         address to = address(new RevertingERC721Recipient());
         vm.expectRevert(abi.encodePacked(ERC721TokenReceiver.onERC721Received.selector));
-        _safeTransferFrom(address(this), to, id, data);
+        _safeTransferFrom(address(this), address(this), to, id, data);
     }
 
     function testSafeTransferFromToERC721RecipientWithWrongReturnDataReverts(uint256 id) public {
         token.mint(address(this), id);
         address to = address(new WrongReturnDataERC721Recipient());
         vm.expectRevert(ERC721.TransferToNonERC721ReceiverImplementer.selector);
-        _safeTransferFrom(address(this), to, id);
+        _safeTransferFrom(address(this), address(this), to, id);
     }
 
     function testSafeTransferFromToERC721RecipientWithWrongReturnDataWithDataReverts(
@@ -690,7 +683,7 @@ contract ERC721Test is SoladyTest {
         token.mint(address(this), id);
         address to = address(new WrongReturnDataERC721Recipient());
         vm.expectRevert(ERC721.TransferToNonERC721ReceiverImplementer.selector);
-        _safeTransferFrom(address(this), to, id, data);
+        _safeTransferFrom(address(this), address(this), to, id, data);
     }
 
     function testSafeMintToNonERC721RecipientReverts(uint256 id) public {
