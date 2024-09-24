@@ -19,9 +19,13 @@ contract MockERC721 is ERC721, Brutalizer {
     }
 
     function burn(uint256 id) public payable virtual {
-        if (!_isApprovedOrOwner(msg.sender, id)) {
+        address owner = _ownerOf[id];
+
+        address caller = msg.sender;
+        if(caller != owner && !isApprovedForAll[owner][caller] && caller != getApproved[id]) {
             revert NotOwnerNorApproved();
         }
+
         _burn(id);
     }
 
@@ -78,7 +82,7 @@ contract MockERC721 is ERC721, Brutalizer {
         _safeTransfer(_brutalized(msg.sender), _brutalized(from), _brutalized(to), id);
     }
 
-    function safeTransferFrom(address from, address to, uint256 id, bytes calldata data)
+    function safeTransferFrom(address from, address to, uint256 id, bytes memory data)
         public
         payable
         virtual
@@ -95,7 +99,9 @@ contract MockERC721 is ERC721, Brutalizer {
     }
 
     function isApprovedOrOwner(address account, uint256 id) public view virtual returns (bool) {
-        return _isApprovedOrOwner(_brutalized(account), id);
+        address target = _brutalized(account);
+        address owner = _ownerOf[id];
+        return target == owner || isApprovedForAll[owner][target] || target == getApproved[id];
     }
 
     /// @dev Returns the base 10 decimal representation of `value`.
