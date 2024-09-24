@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity >=0.8.0;
 
-/// @notice Modern, minimalist, and gas efficient ERC-721 implementation.
+/// @notice  This contract is a reference ERC-721 with a test case (but without use of inline assembly). The purpose
+///          of the contract is to contrast it with a Yul ERC-721 implementation that passes the same tests.
+///
 /// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC721.sol)
+/// @author Solady (https://github.com/vectorized/solady/blob/main/src/tokens/ERC721.sol)
 ///
 /// @dev Note:
 ///        This is Solmate's ERC-721 modified to work with Solady ERC721 test cases. It does not include
 ///        auxData or extraData, or any significant designs from the Solady implementation. The contract
 ///        may contain redundancies.
-///
-///        This contract is a reference ERC-721 with a test case (but without use of inline assembly). The purpose
-///        of the contract is to contrast it with a Yul ERC-721 implementation that passes the same tests.
 abstract contract ERC721 {
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
