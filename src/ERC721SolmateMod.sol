@@ -196,6 +196,25 @@ abstract contract ERC721 {
                         INTERNAL MINT/BURN LOGIC
     //////////////////////////////////////////////////////////////*/
 
+    // function mint(address to, uint256 id) public payable {
+    //     if (to == address(0)) {
+    //         revert TransferToZeroAddress();
+    //     }
+
+    //     if(_ownerOf[id] != address(0)) {
+    //         revert TokenAlreadyExists();
+    //     }
+
+    //     // Counter overflow is incredibly unrealistic.
+    //     unchecked {
+    //         _balanceOf[to]++;
+    //     }
+
+    //     _ownerOf[id] = to;
+
+    //     emit Transfer(address(0), to, id);
+    // }
+
     function _mint(address to, uint256 id) internal virtual {
         if (to == address(0)) {
             revert TransferToZeroAddress();
