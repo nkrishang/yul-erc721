@@ -46,7 +46,6 @@ abstract contract ERC721Yul {
         }
     }
 
-    // TODO: tokenURI
     function tokenURI(uint256 id) public view virtual returns (string memory);
 
     /*//////////////////////////////////////////////////////////////
