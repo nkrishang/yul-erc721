@@ -122,10 +122,8 @@ abstract contract ERC721Yul {
     /*//////////////////////////////////////////////////////////////
                               ERC721 LOGIC
     //////////////////////////////////////////////////////////////*/
-    event Data(bytes32 x);
+
     function approve(address spender, uint256 id) public payable virtual {
-        // bytes32 x;
-        // bytes32 y;
         assembly {
             // Get owner stored at keccak256(concat(id, slot(ownerOf)))
             mstore(0x00, id)
@@ -140,8 +138,6 @@ abstract contract ERC721Yul {
 
             // Check if operator is owner or approved party
             let operator := shr(96, shl(96, caller()))
-            // x := owner
-            // y := operator
 
             // Check: operator == owner
             let approval := eq(operator, owner)
@@ -174,9 +170,6 @@ abstract contract ERC721Yul {
             // emit Approval(owner, spender, id)
             log4(0, 0, 0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925, owner, spender, id)
         }
-
-        // emit Data(x);
-        // emit Data(y);
     }
 
     function setApprovalForAll(address operator, bool approved) public virtual {
