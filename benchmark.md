@@ -1,11 +1,11 @@
-| Test | YUL | SOLADY | SOLMATE |
-|------|-----|--------|---------|
-| approve | 31193 | 28855 | 28958 |
-| balanceOf | 4318 | 4323 | 4336 |
-| burn | 3700 | 3657 | 3679 |
-| mint | 52441 | 52353 | 52670 |
-| ownerOf | 4238 | 4339 | 4237 |
-| safeMint | 107400 | 107233 | 108865 |
-| safeTransferFrom | 25065 | 22987 | 23333 |
-| setApprovalForAll | 30189 | 30014 | 30146 |
-| transferFrom | 23380 | 21269 | 21722 |
+| Test              | YUL    | SOLADY | SOLMATE |
+| ----------------- | ------ | ------ | ------- |
+| approve           | 30990  | 28855  | 28958   |
+| balanceOf         | 4285   | 4323   | 4336    |
+| burn              | 3700   | 3657   | 3679    |
+| mint              | 52372  | 52353  | 52670   |
+| ownerOf           | 4217   | 4339   | 4237    |
+| safeMint          | 107331 | 107233 | 108865  |
+| safeTransferFrom  | 24859  | 22987  | 23333   |
+| setApprovalForAll | 30105  | 30014  | 30146   |
+| transferFrom      | 23174  | 21269  | 21722   |
