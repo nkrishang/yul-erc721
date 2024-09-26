@@ -1,40 +1,36 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0;
 
+/*//////////////////////////////////////////////////////////////
+
+    @dev STORAGE LAYOUT
+
+    The ownerOf(id) slot is given by:
+    ```
+    mstore(0x00, id)
+    ownershipSlot := keccack256(0x00, 0x20)
+    ```
+
+    The approved(id) slot is given by:
+    ```
+    approveSlot := add(ownershipSlot, id)
+    ```
+
+    The balanceOf(owner) slot is given by:
+    ```
+    mstore(0x00, owner)
+    balanceSlot := keccak256(0x0c, 0x14)
+    ```
+
+    The isApprovedForAll[owner][operator] slot is given by:
+    ```
+    mstore(0x14, operator)
+    mstore(0x00, owner)
+    operatorApprovalSlot := keccack256(0x0c, 0x28)
+    ```
+//////////////////////////////////////////////////////////////*/
+
 abstract contract ERC721Yul {
-
-    /*//////////////////////////////////////////////////////////////
-                                STORAGE
-    //////////////////////////////////////////////////////////////*/
-
-    /// @dev The ownership data slot of `id` is given by:
-    /// ```
-    ///     mstore(0x00, id)
-    ///     mstore(0x1c, _ERC721_MASTER_SLOT_SEED)
-    ///     let ownershipSlot := add(id, add(id, keccak256(0x00, 0x20)))
-    /// ```
-    ///
-    /// The approved address slot is given by: `add(1, ownershipSlot)`.
-    ///
-    ///
-    /// The balance slot of `owner` is given by:
-    /// ```
-    ///     mstore(0x1c, _ERC721_MASTER_SLOT_SEED)
-    ///     mstore(0x00, owner)
-    ///     let balanceSlot := keccak256(0x0c, 0x1c)
-    /// ```
-    ///
-    /// The `operator` approval slot of `owner` is given by:
-    /// ```
-    ///     mstore(0x1c, or(_ERC721_MASTER_SLOT_SEED, operator))
-    ///     mstore(0x00, owner)
-    ///     let operatorApprovalSlot := keccak256(0x0c, 0x30)
-    /// ```
-
-    uint256 private constant _ERC721_MASTER_SLOT_SEED = 0x7d8825530a5a2e7a << 192;
-
-    /// @dev Pre-shifted and pre-masked constant.
-    uint256 private constant _ERC721_MASTER_SLOT_SEED_MASKED = 0x0a5a2e7a00000000;
 
     /*//////////////////////////////////////////////////////////////
                          METADATA STORAGE/LOGIC
@@ -76,8 +72,7 @@ abstract contract ERC721Yul {
         assembly {
             // Get owner
             mstore(0x00, id)
-            mstore(0x1c, _ERC721_MASTER_SLOT_SEED)
-            let owner := sload(add(id, add(id, keccak256(0x00, 0x20))))
+            let owner := sload(keccak256(0x00, 0x20))
 
             // If owner == address(0), revert with error TokenDoesNotExist()
             if iszero(owner) {
@@ -102,9 +97,8 @@ abstract contract ERC721Yul {
             }
 
             // Return balance
-            mstore(0x1c, _ERC721_MASTER_SLOT_SEED)
             mstore(0x00, owner)
-            mstore(0x00, sload(keccak256(0x0c, 0x1c)))
+            mstore(0x00, sload(keccak256(0x0c, 0x14)))
             return(0x00, 0x20)
         }
     }
@@ -117,22 +111,21 @@ abstract contract ERC721Yul {
         assembly {
             // Return approved operator
             mstore(0x00, id)
-            mstore(0x1c, _ERC721_MASTER_SLOT_SEED)
-            mstore(0x00, sload(add(add(id, add(id, keccak256(0x00, 0x20))), 1)))
+            mstore(0x00, sload(add(keccak256(0x00, 0x20), 1)))
             return(0x00, 0x20)
         }
     }
 
-    function isApprovedForAll(address owner, address operator) public view virtual returns (bool) {
+    function isApprovedForAll(address owner, address operator) public virtual returns (bool) {
         assembly {
             // Clear upper 96 bits
             owner := shr(96, shl(96, owner))
             operator := shr(96, shl(96, operator))
 
             // Get and return approval
-            mstore(0x1c, or(_ERC721_MASTER_SLOT_SEED, operator))
+            mstore(0x14, operator)
             mstore(0x00, owner)
-            mstore(0x00, sload(keccak256(0x0c, 0x30)))
+            mstore(0x00, sload(keccak256(0x0c, 0x28)))
 
             return(0x00, 0x20)
         }
@@ -146,8 +139,7 @@ abstract contract ERC721Yul {
         assembly {
             // Get owner
             mstore(0x00, id)
-            mstore(0x1c, _ERC721_MASTER_SLOT_SEED)
-            let ownershipSlot := add(id, add(id, keccak256(0x00, 0x20)))
+            let ownershipSlot := keccak256(0x00, 0x20)
             let owner := sload(ownershipSlot)
 
             // If owner == address(0), revert with error TokenDoesNotExist()
@@ -163,9 +155,9 @@ abstract contract ERC721Yul {
             let approval := eq(operator, owner)
 
             // Check: isApprovedForAll[owner][operator]
-            mstore(0x1c, or(_ERC721_MASTER_SLOT_SEED, operator))
+            mstore(0x14, operator)
             mstore(0x00, owner)
-            approval := or(approval, sload(keccak256(0x0c, 0x30)))
+            approval := or(approval, sload(keccak256(0x0c, 0x28)))
 
             // Check: getApproved[id]
             let getApprovedSlot := add(ownershipSlot, 1)
@@ -179,22 +171,22 @@ abstract contract ERC721Yul {
 
             // Store first argument: spender as approved
             spender := shr(96, shl(96, spender))
-            sstore(getApprovedSlot, spender)
+            sstore(getApprovedSlot, shr(96, shl(96, spender)))
 
             // emit Approval(owner, spender, id)
             log4(0, 0, 0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925, owner, spender, id)
         }
     }
-
+    event Data(bytes32 x);
     function setApprovalForAll(address operator, bool approved) public virtual {
         assembly {
             let owner := shr(96, shl(96, caller()))
             operator := shr(96, shl(96, operator))
             
             // Store approval
-            mstore(0x1c, or(_ERC721_MASTER_SLOT_SEED, operator))
+            mstore(0x14, operator)
             mstore(0x00, owner)
-            sstore(keccak256(0x0c, 0x30), approved)
+            sstore(keccak256(0x0c, 0x28), approved)
 
             // emit ApprovalForAll(owner, operator, approval);
             mstore(0x00, approved)
@@ -213,8 +205,7 @@ abstract contract ERC721Yul {
 
             // Get owner
             mstore(0x00, id)
-            mstore(0x1c, _ERC721_MASTER_SLOT_SEED)
-            let ownershipSlot := add(id, add(id, keccak256(0x00, 0x20)))
+            let ownershipSlot := keccak256(0x00, 0x20)
             let owner := sload(ownershipSlot)
 
             // If owner == address(0), revert with error TokenDoesNotExist()
@@ -242,9 +233,9 @@ abstract contract ERC721Yul {
             let approval := eq(operator, owner)
 
             // Check: isApprovedForAll[owner][operator]
-            mstore(0x1c, or(_ERC721_MASTER_SLOT_SEED, operator))
+            mstore(0x14, operator)
             mstore(0x00, owner)
-            approval := or(approval, sload(keccak256(0x0c, 0x30)))
+            approval := or(approval, sload(keccak256(0x0c, 0x28)))
 
             // Check: getApproved[id]
             let getApprovedSlot := add(ownershipSlot, 1)
@@ -258,11 +249,11 @@ abstract contract ERC721Yul {
 
             // Update balances
             mstore(0x00, from)
-            let balSlot := keccak256(0x0c, 0x1c)
+            let balSlot := keccak256(0x0c, 0x14)
             sstore(balSlot, sub(sload(balSlot), 1))
 
             mstore(0x00, to)
-            balSlot := keccak256(0x0c, 0x1c)
+            balSlot := keccak256(0x0c, 0x14)
             sstore(balSlot, add(sload(balSlot), 1))
 
             // Update ownership
@@ -325,8 +316,7 @@ abstract contract ERC721Yul {
 
             // Get owner
             mstore(0x00, id)
-            mstore(0x1c, _ERC721_MASTER_SLOT_SEED)
-            let ownershipSlot := add(id, add(id, keccak256(0x00, 0x20)))
+            let ownershipSlot := keccak256(0x00, 0x20)
             let owner := sload(ownershipSlot)
 
             // If token has owner, revert with error TokenAlreadyExists()
@@ -337,7 +327,7 @@ abstract contract ERC721Yul {
 
             // Increment balance of `to` at slot keccak256(concat(to, slot(balanceOf)))
             mstore(0x00, to)
-            let balSlot := keccak256(0x0c, 0x1c)
+            let balSlot := keccak256(0x0c, 0x14)
             sstore(balSlot, add(sload(balSlot), 1))
 
             // Store `to` as owner of token
@@ -352,8 +342,7 @@ abstract contract ERC721Yul {
         assembly {
             // Get owner
             mstore(0x00, id)
-            mstore(0x1c, _ERC721_MASTER_SLOT_SEED)
-            let ownershipSlot := add(id, add(id, keccak256(0x00, 0x20)))
+            let ownershipSlot := keccak256(0x00, 0x20)
             let owner := sload(ownershipSlot)
 
             // If token has owner, revert with error TokenDoesNotExist()
@@ -369,9 +358,9 @@ abstract contract ERC721Yul {
             let approval := eq(operator, owner)
 
             // Check: isApprovedForAll[owner][operator]
-            mstore(0x1c, or(_ERC721_MASTER_SLOT_SEED, operator))
+            mstore(0x14, operator)
             mstore(0x00, owner)
-            approval := or(approval, sload(keccak256(0x0c, 0x30)))
+            approval := or(approval, sload(keccak256(0x0c, 0x28)))
 
             // Check: getApproved[id]
             let getApprovedSlot := add(ownershipSlot, 1)
@@ -384,7 +373,7 @@ abstract contract ERC721Yul {
             }
 
             // Decrement balance of owner at slot keccak256(concat(owner, slot(balanceOf)))
-            let balSlot := keccak256(0x0c, 0x1c)
+            let balSlot := keccak256(0x0c, 0x14)
             sstore(balSlot, sub(sload(balSlot), 1))
 
             // Delete ownership
