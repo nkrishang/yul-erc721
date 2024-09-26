@@ -3,7 +3,7 @@ pragma solidity ^0.8.4;
 
 import "./utils/SoladyTest.sol";
 
-import {ERC721, MockERC721} from "./utils/MockERC721.sol";
+import {ERC721Solady, MockERC721Solady} from "./utils/MockERC721Solady.sol";
 
 abstract contract ERC721TokenReceiver {
     function onERC721Received(address, address, uint256, bytes calldata)
@@ -60,8 +60,8 @@ contract WrongReturnDataERC721Recipient is ERC721TokenReceiver {
 
 contract NonERC721Recipient {}
 
-contract ERC721Test is SoladyTest {
-    MockERC721 token;
+contract ERC721SoladyTest is SoladyTest {
+    MockERC721Solady token;
 
     uint256 private constant _ERC721_MASTER_SLOT_SEED = 0x7d8825530a5a2e7a << 192;
 
@@ -72,7 +72,7 @@ contract ERC721Test is SoladyTest {
     event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
 
     function setUp() public {
-        token = new MockERC721();
+        token = new MockERC721Solady();
     }
 
     function _expectMintEvent(address to, uint256 id) internal {
@@ -216,7 +216,7 @@ contract ERC721Test is SoladyTest {
         _expectMintEvent(owner, id);
         token.mint(owner, id);
 
-        vm.expectRevert(ERC721.NotOwnerNorApproved.selector);
+        vm.expectRevert(ERC721Solady.NotOwnerNorApproved.selector);
         token.burn(id);
         uint256 r = _random() % 3;
         if (r == 0) {
@@ -237,7 +237,7 @@ contract ERC721Test is SoladyTest {
 
         assertEq(token.balanceOf(owner), 0);
 
-        vm.expectRevert(ERC721.TokenDoesNotExist.selector);
+        vm.expectRevert(ERC721Solady.TokenDoesNotExist.selector);
         _ownerOf(id);
     }
 
@@ -301,7 +301,7 @@ contract ERC721Test is SoladyTest {
             if (_randomChance(2)) {
                 for (uint256 j; j != 2; ++j) {
                     for (uint256 i; i != tokens[j].length; ++i) {
-                        vm.expectRevert(ERC721.NotOwnerNorApproved.selector);
+                        vm.expectRevert(ERC721Solady.NotOwnerNorApproved.selector);
                         _transferFrom(address(this), owners[j ^ 1], owners[j], tokens[j][i]);
                         _expectApprovalEvent(owners[j ^ 1], address(this), tokens[j][i]);
                         _approve(owners[j ^ 1], address(this), tokens[j][i]);
@@ -362,9 +362,10 @@ contract ERC721Test is SoladyTest {
 
         assertEq(token.balanceOf(address(this)), 0);
 
-        assertEq(address(0), _getApproved(id));
+        vm.expectRevert(ERC721Solady.TokenDoesNotExist.selector);
+        _getApproved(id);
 
-        vm.expectRevert(ERC721.TokenDoesNotExist.selector);
+        vm.expectRevert(ERC721Solady.TokenDoesNotExist.selector);
         _ownerOf(id);
     }
 
@@ -541,7 +542,7 @@ contract ERC721Test is SoladyTest {
     }
 
     function testMintToZeroReverts(uint256 id) public {
-        vm.expectRevert(ERC721.TransferToZeroAddress.selector);
+        vm.expectRevert(ERC721Solady.TransferToZeroAddress.selector);
         token.mint(address(0), id);
     }
 
@@ -549,12 +550,12 @@ contract ERC721Test is SoladyTest {
         (address to,) = _randomSigner();
 
         token.mint(to, id);
-        vm.expectRevert(ERC721.TokenAlreadyExists.selector);
+        vm.expectRevert(ERC721Solady.TokenAlreadyExists.selector);
         token.mint(to, id);
     }
 
     function testBurnNonExistentReverts(uint256 id) public {
-        vm.expectRevert(ERC721.TokenDoesNotExist.selector);
+        vm.expectRevert(ERC721Solady.TokenDoesNotExist.selector);
         token.burn(id);
     }
 
@@ -566,12 +567,12 @@ contract ERC721Test is SoladyTest {
         vm.prank(to);
         token.burn(id);
 
-        vm.expectRevert(ERC721.TokenDoesNotExist.selector);
+        vm.expectRevert(ERC721Solady.TokenDoesNotExist.selector);
         token.burn(id);
     }
 
     function testApproveNonExistentReverts(uint256 id, address to) public {
-        vm.expectRevert(ERC721.TokenDoesNotExist.selector);
+        vm.expectRevert(ERC721Solady.TokenDoesNotExist.selector);
         _approve(address(this), to, id);
     }
 
@@ -579,12 +580,12 @@ contract ERC721Test is SoladyTest {
         (address owner, address to) = _owners();
 
         token.mint(owner, id);
-        vm.expectRevert(ERC721.NotOwnerNorApproved.selector);
+        vm.expectRevert(ERC721Solady.NotOwnerNorApproved.selector);
         _approve(address(this), to, id);
     }
 
     function testTransferFromNotExistentReverts(address from, address to, uint256 id) public {
-        vm.expectRevert(ERC721.TokenDoesNotExist.selector);
+        vm.expectRevert(ERC721Solady.TokenDoesNotExist.selector);
         _transferFrom(address(this), from, to, id);
     }
 
@@ -592,14 +593,14 @@ contract ERC721Test is SoladyTest {
         (address owner, address from) = _owners();
 
         token.mint(owner, id);
-        vm.expectRevert(ERC721.TransferFromIncorrectOwner.selector);
+        vm.expectRevert(ERC721Solady.TransferFromIncorrectOwner.selector);
         _transferFrom(address(this), from, to, id);
     }
 
     function testTransferFromToZeroReverts(uint256 id) public {
         token.mint(address(this), id);
 
-        vm.expectRevert(ERC721.TransferToZeroAddress.selector);
+        vm.expectRevert(ERC721Solady.TransferToZeroAddress.selector);
         _transferFrom(address(this), address(this), address(0), id);
     }
 
@@ -608,14 +609,14 @@ contract ERC721Test is SoladyTest {
 
         token.mint(from, id);
 
-        vm.expectRevert(ERC721.NotOwnerNorApproved.selector);
+        vm.expectRevert(ERC721Solady.NotOwnerNorApproved.selector);
         _transferFrom(address(this), from, to, id);
     }
 
     function testSafeTransferFromToNonERC721RecipientReverts(uint256 id) public {
         token.mint(address(this), id);
         address to = address(new NonERC721Recipient());
-        vm.expectRevert(ERC721.TransferToNonERC721ReceiverImplementer.selector);
+        vm.expectRevert(ERC721Solady.TransferToNonERC721ReceiverImplementer.selector);
         _safeTransferFrom(address(this), address(this), address(to), id);
     }
 
@@ -624,7 +625,7 @@ contract ERC721Test is SoladyTest {
     {
         token.mint(address(this), id);
         address to = address(new NonERC721Recipient());
-        vm.expectRevert(ERC721.TransferToNonERC721ReceiverImplementer.selector);
+        vm.expectRevert(ERC721Solady.TransferToNonERC721ReceiverImplementer.selector);
         _safeTransferFrom(address(this), address(this), to, id, data);
     }
 
@@ -648,7 +649,7 @@ contract ERC721Test is SoladyTest {
     function testSafeTransferFromToERC721RecipientWithWrongReturnDataReverts(uint256 id) public {
         token.mint(address(this), id);
         address to = address(new WrongReturnDataERC721Recipient());
-        vm.expectRevert(ERC721.TransferToNonERC721ReceiverImplementer.selector);
+        vm.expectRevert(ERC721Solady.TransferToNonERC721ReceiverImplementer.selector);
         _safeTransferFrom(address(this), address(this), to, id);
     }
 
@@ -658,13 +659,13 @@ contract ERC721Test is SoladyTest {
     ) public {
         token.mint(address(this), id);
         address to = address(new WrongReturnDataERC721Recipient());
-        vm.expectRevert(ERC721.TransferToNonERC721ReceiverImplementer.selector);
+        vm.expectRevert(ERC721Solady.TransferToNonERC721ReceiverImplementer.selector);
         _safeTransferFrom(address(this), address(this), to, id, data);
     }
 
     function testSafeMintToNonERC721RecipientReverts(uint256 id) public {
         address to = address(new NonERC721Recipient());
-        vm.expectRevert(ERC721.TransferToNonERC721ReceiverImplementer.selector);
+        vm.expectRevert(ERC721Solady.TransferToNonERC721ReceiverImplementer.selector);
         token.safeMint(to, id);
     }
 
@@ -672,7 +673,7 @@ contract ERC721Test is SoladyTest {
         public
     {
         address to = address(new NonERC721Recipient());
-        vm.expectRevert(ERC721.TransferToNonERC721ReceiverImplementer.selector);
+        vm.expectRevert(ERC721Solady.TransferToNonERC721ReceiverImplementer.selector);
         token.safeMint(to, id, data);
     }
 
@@ -693,7 +694,7 @@ contract ERC721Test is SoladyTest {
 
     function testSafeMintToERC721RecipientWithWrongReturnData(uint256 id) public {
         address to = address(new WrongReturnDataERC721Recipient());
-        vm.expectRevert(ERC721.TransferToNonERC721ReceiverImplementer.selector);
+        vm.expectRevert(ERC721Solady.TransferToNonERC721ReceiverImplementer.selector);
         token.safeMint(to, id);
     }
 
@@ -701,12 +702,12 @@ contract ERC721Test is SoladyTest {
         public
     {
         address to = address(new WrongReturnDataERC721Recipient());
-        vm.expectRevert(ERC721.TransferToNonERC721ReceiverImplementer.selector);
+        vm.expectRevert(ERC721Solady.TransferToNonERC721ReceiverImplementer.selector);
         token.safeMint(to, id, data);
     }
 
     function testOwnerOfNonExistent(uint256 id) public {
-        vm.expectRevert(ERC721.TokenDoesNotExist.selector);
+        vm.expectRevert(ERC721Solady.TokenDoesNotExist.selector);
         _ownerOf(id);
     }
 }

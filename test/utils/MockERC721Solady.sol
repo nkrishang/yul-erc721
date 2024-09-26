@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import {ERC721} from "src/ERC721SolmateMod.sol";
+import {ERC721Solady} from "src/ERC721Solady.sol";
 import {Brutalizer} from "./Brutalizer.sol";
 
 /// @dev WARNING! This mock is strictly intended for testing purposes only.
 /// Do NOT copy anything here into production code unless you really know what you are doing.
-contract MockERC721 is ERC721, Brutalizer {
-
-    constructor() ERC721("TEST NFT", "TEST") {}
+contract MockERC721Solady is ERC721Solady, Brutalizer {
 
     function tokenURI(uint256 id) public view virtual override returns (string memory) {
         return string(abi.encodePacked("https://remilio.org/remilio/json/", toString(id)));
@@ -19,6 +17,9 @@ contract MockERC721 is ERC721, Brutalizer {
     }
 
     function burn(uint256 id) public payable virtual {
+        if(!_isApprovedOrOwner(msg.sender, id)) {
+            revert NotOwnerNorApproved();
+        }
         _burn(id);
     }
 
@@ -51,7 +52,7 @@ contract MockERC721 is ERC721, Brutalizer {
         super.safeTransferFrom(_brutalized(from), _brutalized(to), id);
     }
 
-    function safeTransferFrom(address from, address to, uint256 id, bytes memory data)
+    function safeTransferFrom(address from, address to, uint256 id, bytes calldata data)
         public
         payable
         virtual

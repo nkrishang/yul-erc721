@@ -2,6 +2,6 @@
 src = "src"
 out = "out"
 libs = ["lib"]
-gas_reports = ["MockERC721"]
+gas_reports = ["MockERC721", "MockERC721Yul", "MockERC721Solady"]
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

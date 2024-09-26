@@ -436,43 +436,6 @@ contract ERC721Solady {
     /*                  INTERNAL MINT FUNCTIONS                   */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
-    function mint(address to, uint256 id) public payable virtual {
-        _beforeTokenTransfer(address(0), to, id);
-        /// @solidity memory-safe-assembly
-        assembly {
-            // Clear the upper 96 bits.
-            to := shr(96, shl(96, to))
-            // Load the ownership data.
-            mstore(0x00, id)
-            mstore(0x1c, _ERC721_MASTER_SLOT_SEED)
-            let ownershipSlot := add(id, add(id, keccak256(0x00, 0x20)))
-            let ownershipPacked := sload(ownershipSlot)
-            // Revert if the token already exists.
-            if shl(96, ownershipPacked) {
-                mstore(0x00, 0xc991cbb1) // `TokenAlreadyExists()`.
-                revert(0x1c, 0x04)
-            }
-            // Update with the owner.
-            sstore(ownershipSlot, or(ownershipPacked, to))
-            // Increment the balance of the owner.
-            {
-                mstore(0x00, to)
-                let balanceSlot := keccak256(0x0c, 0x1c)
-                let balanceSlotPacked := add(sload(balanceSlot), 1)
-                // Revert if `to` is the zero address, or if the account balance overflows.
-                if iszero(mul(to, and(balanceSlotPacked, _MAX_ACCOUNT_BALANCE))) {
-                    // `TransferToZeroAddress()`, `AccountBalanceOverflow()`.
-                    mstore(shl(2, iszero(to)), 0xea553b3401336cea)
-                    revert(0x1c, 0x04)
-                }
-                sstore(balanceSlot, balanceSlotPacked)
-            }
-            // Emit the {Transfer} event.
-            log4(codesize(), 0x00, _TRANSFER_EVENT_SIGNATURE, 0, to, id)
-        }
-        _afterTokenTransfer(address(0), to, id);
-    }
-
     /// @dev Mints token `id` to `to`.
     ///
     /// Requirements:
@@ -553,10 +516,6 @@ contract ERC721Solady {
             log4(codesize(), 0x00, _TRANSFER_EVENT_SIGNATURE, 0, to, id)
         }
         _afterTokenTransfer(address(0), to, id);
-    }
-
-    function safeMint(address to, uint256 id) public payable virtual {
-        _safeMint(to, id, "");
     }
 
     /// @dev Equivalent to `_safeMint(to, id, "")`.
