@@ -73,6 +73,7 @@ abstract contract ERC721Yul {
 
     function balanceOf(address owner) public view virtual returns (uint256) {
         assembly {
+            owner := shr(96, shl(96, owner))
             // If owner == address(0), revert with error BalanceQueryForZeroAddress()
             if iszero(owner) {
                 mstore(0x00, 0x8f4eb604)
@@ -103,6 +104,9 @@ abstract contract ERC721Yul {
 
     function isApprovedForAll(address owner, address operator) public view virtual returns (bool) {
         assembly {
+            owner := shr(96, shl(96, owner))
+            operator := shr(96, shl(96, operator))
+
             // Hash owner with slot(isApprovedForAll)
             mstore(0x00, owner)
             mstore(0x20, 0xf636dbdce80905a32bcc32ab76cebd6c5a0c63966fff1537b3bf6a12bc92c603)
@@ -119,8 +123,10 @@ abstract contract ERC721Yul {
     /*//////////////////////////////////////////////////////////////
                               ERC721 LOGIC
     //////////////////////////////////////////////////////////////*/
-
+    event Data(bytes32 x);
     function approve(address spender, uint256 id) public payable virtual {
+        // bytes32 x;
+        // bytes32 y;
         assembly {
             // Get owner stored at keccak256(concat(id, slot(ownerOf)))
             mstore(0x00, id)
@@ -134,7 +140,9 @@ abstract contract ERC721Yul {
             }
 
             // Check if operator is owner or approved party
-            let operator := caller()
+            let operator := shr(96, shl(96, caller()))
+            // x := owner
+            // y := operator
 
             // Check: operator == owner
             let approval := eq(operator, owner)
@@ -161,16 +169,21 @@ abstract contract ERC721Yul {
             }
 
             // Store first argument: spender as approved
+            spender := shr(96, shl(96, spender))
             sstore(getApprovedSlot, spender)
 
             // emit Approval(owner, spender, id)
             log4(0, 0, 0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925, owner, spender, id)
         }
+
+        // emit Data(x);
+        // emit Data(y);
     }
 
     function setApprovalForAll(address operator, bool approved) public virtual {
         assembly {
-            let owner := caller()
+            let owner := shr(96, shl(96, caller()))
+            operator := shr(96, shl(96, operator))
 
             // Hash owner with slot(isApprovedForAll)
             mstore(0x00, owner)
@@ -194,6 +207,9 @@ abstract contract ERC721Yul {
         uint256 id
     ) public payable virtual {
         assembly {
+            from := shr(96, shl(96, from))
+            to := shr(96, shl(96, to))
+
             // Get owner stored at keccak256(concat(id, slot(ownerOf)))
             mstore(0x00, id)
             mstore(0x20, 0xf636dbdce80905a32bcc32ab76cebd6c5a0c63966fff1537b3bf6a12bc92c600)
@@ -219,7 +235,7 @@ abstract contract ERC721Yul {
             }
 
             // Check if operator is owner or approved party
-            let operator := caller()
+            let operator := shr(96, shl(96, caller()))
 
             // Check: operator == owner
             let approval := eq(operator, owner)
@@ -304,7 +320,8 @@ abstract contract ERC721Yul {
 
     function _mint(address to, uint256 id) internal virtual {
         assembly {
-            
+            to := shr(96, shl(96, to))
+
             // If minting to address(0), revert with error TransferToZeroAddress()
             if iszero(to) {
                 mstore(0x00, 0xea553b34)
@@ -345,14 +362,14 @@ abstract contract ERC721Yul {
             let ownerSlot := keccak256(0x00, 0x40)
             let owner := sload(ownerSlot)
 
-            // If token has owner, revert with error TokenAlreadyExists()
-            if owner {
-                mstore(0x00, 0xc991cbb1)
+            // If token has owner, revert with error TokenDoesNotExist()
+            if iszero(owner) {
+                mstore(0x00, 0xceea21b6)
                 revert(0x1c, 0x04)
             }
 
             // Check if operator is owner or approved party
-            let operator := caller()
+            let operator := shr(96, shl(96, caller()))
 
             // Check: operator == owner
             let approval := eq(operator, owner)
@@ -376,7 +393,13 @@ abstract contract ERC721Yul {
             if iszero(approval) {
                 mstore(0x00, 0x4b6e7f18)
                 revert(0x1c, 0x04)
-            }   
+            }
+
+            // Decrement balance of owner at slot keccak256(concat(owner, slot(balanceOf)))
+            mstore(0x00, owner)
+            mstore(0x20, 0xf636dbdce80905a32bcc32ab76cebd6c5a0c63966fff1537b3bf6a12bc92c601)
+            let balSlot := keccak256(0x00, 0x40)
+            sstore(balSlot, sub(sload(balSlot), 1))
 
             // Delete ownership
             sstore(ownerSlot, 0x00)
@@ -400,6 +423,10 @@ abstract contract ERC721Yul {
 
     function _safeTransferCheck(address operator, address from, address to, uint256 id, bytes memory data) internal {
         assembly {
+            to := shr(96, shl(96, to))
+            from := shr(96, shl(96, from))
+            operator := shr(96, shl(96, operator))
+            
             // If `to` is a contract:
             if extcodesize(to) {
 
