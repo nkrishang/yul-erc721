@@ -21,7 +21,8 @@ contract MockERC721Yul is ERC721Yul, Brutalizer {
     }
 
     function safeMint(address to, uint256 id) public virtual {
-        _safeMint(_brutalized(to), id, "");
+        _mint(to, id);
+        _safeTransferCheck(address(0), to, id, "");
     }
 
     function safeMint(address to, uint256 id, bytes calldata data) public virtual {
@@ -32,7 +33,7 @@ contract MockERC721Yul is ERC721Yul, Brutalizer {
         super.approve(_brutalized(account), id);
     }
 
-    function setApprovalForAll(address operator, bool approved) public virtual override {
+    function setApprovalForAll(address operator, bool approved) public payable virtual override {
         super.setApprovalForAll(_brutalized(operator), approved);
     }
 
@@ -49,7 +50,7 @@ contract MockERC721Yul is ERC721Yul, Brutalizer {
         super.safeTransferFrom(_brutalized(from), _brutalized(to), id);
     }
 
-    function safeTransferFrom(address from, address to, uint256 id, bytes memory data)
+    function safeTransferFrom(address from, address to, uint256 id, bytes calldata data)
         public
         payable
         virtual

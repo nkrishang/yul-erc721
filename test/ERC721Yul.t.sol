@@ -401,7 +401,7 @@ contract ERC721YulTest is SoladyTest {
         assertEq(token.isApprovedForAll(address(this), operator), approved);
     }
 
-    function testTransferFrom(uint256 id) public {
+    function testTransferFromSingle(uint256 id) public {
         (address from, address to) = _owners();
 
         token.mint(from, id);

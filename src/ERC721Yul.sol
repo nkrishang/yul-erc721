@@ -13,13 +13,13 @@ pragma solidity >=0.8.0;
 
     The approved(id) slot is given by:
     ```
-    approveSlot := add(ownershipSlot, id)
+    approveSlot := add(ownershipSlot, 1)
     ```
 
     The balanceOf(owner) slot is given by:
     ```
     mstore(0x00, owner)
-    balanceSlot := keccak256(0x0c, 0x14)
+    balanceSlot := keccak256(0x00, 0x20)
     ```
 
     The isApprovedForAll[owner][operator] slot is given by:
@@ -98,7 +98,7 @@ abstract contract ERC721Yul {
 
             // Return balance
             mstore(0x00, owner)
-            mstore(0x00, sload(keccak256(0x0c, 0x14)))
+            mstore(0x00, sload(keccak256(0x00, 0x20)))
             return(0x00, 0x20)
         }
     }
@@ -118,15 +118,10 @@ abstract contract ERC721Yul {
 
     function isApprovedForAll(address owner, address operator) public virtual returns (bool) {
         assembly {
-            // Clear upper 96 bits
-            owner := shr(96, shl(96, owner))
-            operator := shr(96, shl(96, operator))
-
             // Get and return approval
-            mstore(0x14, operator)
-            mstore(0x00, owner)
+            mstore(0x14, shr(96, shl(96, operator)))
+            mstore(0x00, shr(96, shl(96, owner)))
             mstore(0x00, sload(keccak256(0x0c, 0x28)))
-
             return(0x00, 0x20)
         }
     }
@@ -148,49 +143,42 @@ abstract contract ERC721Yul {
                 revert(0x1c, 0x04)
             }
 
-            // Check if operator is owner or approved party
-            let operator := shr(96, shl(96, caller()))
-
-            // Check: operator == owner
-            let approval := eq(operator, owner)
-
-            // Check: isApprovedForAll[owner][operator]
-            mstore(0x14, operator)
-            mstore(0x00, owner)
-            approval := or(approval, sload(keccak256(0x0c, 0x28)))
-
-            // Check: getApproved[id]
-            let getApprovedSlot := add(ownershipSlot, 1)
-            approval := or(approval, eq(operator, sload(getApprovedSlot)))
-
             // If not owner or approved, revert with error NotOwnerNorApproved()
-            if iszero(approval) {
-                mstore(0x00, 0x4b6e7f18)
-                revert(0x1c, 0x04)
+            if iszero(eq(caller(), owner)) {
+                
+                mstore(0x14, caller())
+                mstore(0x00, owner)
+
+                if iszero(sload(keccak256(0x0c, 0x28))) {
+
+                    if iszero(sload(add(ownershipSlot, 1))) {
+                        mstore(0x00, 0x4b6e7f18)
+                        revert(0x1c, 0x04)
+                    }
+                }
             }
 
-            // Store first argument: spender as approved
+            // Approve spender for token
             spender := shr(96, shl(96, spender))
-            sstore(getApprovedSlot, shr(96, shl(96, spender)))
+            sstore(add(ownershipSlot, 1), spender)
 
             // emit Approval(owner, spender, id)
             log4(0, 0, 0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925, owner, spender, id)
         }
     }
-    event Data(bytes32 x);
-    function setApprovalForAll(address operator, bool approved) public virtual {
+
+    function setApprovalForAll(address operator, bool approved) public payable virtual {
         assembly {
-            let owner := shr(96, shl(96, caller()))
-            operator := shr(96, shl(96, operator))
+            let op := shr(96, shl(96, operator))
             
             // Store approval
-            mstore(0x14, operator)
-            mstore(0x00, owner)
+            mstore(0x14, op)
+            mstore(0x00, caller())
             sstore(keccak256(0x0c, 0x28), approved)
 
             // emit ApprovalForAll(owner, operator, approval);
             mstore(0x00, approved)
-            log3(0, 0x20, 0x17307eab39ab6107e8899845ad3d59bd9653f200f220920489ca2b5937696c31, owner, operator)
+            log3(0, 0x20, 0x17307eab39ab6107e8899845ad3d59bd9653f200f220920489ca2b5937696c31, caller(), op)
         }
     }
 
@@ -200,70 +188,66 @@ abstract contract ERC721Yul {
         uint256 id
     ) public payable virtual {
         assembly {
-            from := shr(96, shl(96, from))
-            to := shr(96, shl(96, to))
+            let recipient := shr(96, shl(96, to))
+            let sender := shr(96, shl(96, from))
 
             // Get owner
             mstore(0x00, id)
             let ownershipSlot := keccak256(0x00, 0x20)
             let owner := sload(ownershipSlot)
 
-            // If owner == address(0), revert with error TokenDoesNotExist()
             if iszero(owner) {
+                // If owner == address(0), revert with error TokenDoesNotExist()
                 mstore(0x00, 0xceea21b6)
                 revert(0x1c, 0x04)
             }
 
-            // If from != owner, revert with error TransferFromIncorrectOwner()
-            if iszero(eq(from, owner)) {
+            if iszero(eq(sender, owner)) {
+                // If from != owner, revert with error TransferFromIncorrectOwner()
                 mstore(0x00, 0xa1148100)
                 revert(0x1c, 0x04)
             }
 
-            // If to == address(0), revert with error TransferToZeroAddress()
-            if iszero(to) {
+            if iszero(recipient) {
+                // If to == address(0), revert with error TransferToZeroAddress()
                 mstore(0x00, 0xea553b34)
                 revert(0x1c, 0x04)
             }
 
-            // Check if operator is owner or approved party
-            let operator := shr(96, shl(96, caller()))
-
-            // Check: operator == owner
-            let approval := eq(operator, owner)
-
-            // Check: isApprovedForAll[owner][operator]
-            mstore(0x14, operator)
+            // Update balances
+            mstore(0x00, recipient)
+            let recipientBal := keccak256(0x00, 0x20)
+            sstore(recipientBal, add(sload(recipientBal), 1))
+            
+                              
             mstore(0x00, owner)
-            approval := or(approval, sload(keccak256(0x0c, 0x28)))
+            let ownerBal := keccak256(0x00, 0x20)
+            sstore(ownerBal, sub(sload(ownerBal), 1))
 
-            // Check: getApproved[id]
-            let getApprovedSlot := add(ownershipSlot, 1)
-            approval := or(approval, eq(operator, sload(getApprovedSlot)))
+            {
+                // If not owner or approved, revert with error NotOwnerNorApproved()
+                let approveAddress := sload(add(ownershipSlot, 1))
+                if iszero(eq(caller(), owner)) {
 
-            // If not owner or approved, revert with error NotOwnerNorApproved()
-            if iszero(approval) {
-                mstore(0x00, 0x4b6e7f18)
-                revert(0x1c, 0x04)
+                    if iszero(approveAddress) {
+                        mstore(0x14, caller())
+                        mstore(0x00, owner)
+
+                        if iszero(sload(keccak256(0x0c, 0x28))) {
+                            mstore(0x00, 0x4b6e7f18)
+                            revert(0x1c, 0x04)
+                        }   
+                    }
+                }
+                // Delete approval
+                if approveAddress { sstore(add(ownershipSlot, 1), 0x00) }                    
             }
 
-            // Update balances
-            mstore(0x00, from)
-            let balSlot := keccak256(0x0c, 0x14)
-            sstore(balSlot, sub(sload(balSlot), 1))
-
-            mstore(0x00, to)
-            balSlot := keccak256(0x0c, 0x14)
-            sstore(balSlot, add(sload(balSlot), 1))
-
             // Update ownership
-            sstore(ownershipSlot, to)
-
-            // Delete approval
-            sstore(getApprovedSlot, 0x00)
+            sstore(ownershipSlot, recipient)
 
             // emit Transfer(from, to, id)
-            log4(0, 0, 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef, from, to, id)
+            log4(0, 0, 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef, sender, recipient, id)
         }
     }
 
@@ -272,17 +256,18 @@ abstract contract ERC721Yul {
         address to,
         uint256 id
     ) public payable virtual {
-        safeTransferFrom(from, to, id, "");
+        transferFrom(from, to, id);
+        _safeTransferCheck(from, to, id, "");
     }
 
     function safeTransferFrom(
         address from,
         address to,
         uint256 id,
-        bytes memory data
+        bytes calldata data
     ) public payable virtual {
         transferFrom(from, to, id);
-        _safeTransferCheck(msg.sender, from, to, id, data);
+        _safeTransferCheck(from, to, id, data);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -306,10 +291,10 @@ abstract contract ERC721Yul {
 
     function _mint(address to, uint256 id) internal virtual {
         assembly {
-            to := shr(96, shl(96, to))
+            let recipient := shr(96, shl(96, to))
 
             // If minting to address(0), revert with error TransferToZeroAddress()
-            if iszero(to) {
+            if iszero(recipient) {
                 mstore(0x00, 0xea553b34)
                 revert(0x1c, 0x04)
             }
@@ -326,15 +311,15 @@ abstract contract ERC721Yul {
             }
 
             // Increment balance of `to` at slot keccak256(concat(to, slot(balanceOf)))
-            mstore(0x00, to)
-            let balSlot := keccak256(0x0c, 0x14)
+            mstore(0x00, recipient)
+            let balSlot := keccak256(0x00, 0x20)
             sstore(balSlot, add(sload(balSlot), 1))
 
             // Store `to` as owner of token
-            sstore(ownershipSlot, to)
+            sstore(ownershipSlot, recipient)
 
             // emit Transfer(address(0), to, id)
-            log4(0, 0, 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef, 0x00, to, id)
+            log4(0, 0, 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef, 0x00, recipient, id)
         }
     }
 
@@ -351,36 +336,33 @@ abstract contract ERC721Yul {
                 revert(0x1c, 0x04)
             }
 
-            // Check if operator is owner or approved party
-            let operator := shr(96, shl(96, caller()))
-
-            // Check: operator == owner
-            let approval := eq(operator, owner)
-
-            // Check: isApprovedForAll[owner][operator]
-            mstore(0x14, operator)
-            mstore(0x00, owner)
-            approval := or(approval, sload(keccak256(0x0c, 0x28)))
-
-            // Check: getApproved[id]
-            let getApprovedSlot := add(ownershipSlot, 1)
-            approval := or(approval, eq(operator, sload(getApprovedSlot)))
-
             // If not owner or approved, revert with error NotOwnerNorApproved()
-            if iszero(approval) {
-                mstore(0x00, 0x4b6e7f18)
-                revert(0x1c, 0x04)
+            let approvedAddress := sload(add(ownershipSlot, 1))
+
+            if iszero(eq(caller(), owner)) {
+                
+                mstore(0x14, caller())
+                mstore(0x00, owner)
+
+                if iszero(sload(keccak256(0x0c, 0x28))) {
+
+                    if iszero(approvedAddress) {
+                        mstore(0x00, 0x4b6e7f18)
+                        revert(0x1c, 0x04)
+                    }
+                }
             }
 
             // Decrement balance of owner at slot keccak256(concat(owner, slot(balanceOf)))
-            let balSlot := keccak256(0x0c, 0x14)
+            mstore(0x00, owner)
+            let balSlot := keccak256(0x00, 0x20)
             sstore(balSlot, sub(sload(balSlot), 1))
 
             // Delete ownership
             sstore(ownershipSlot, 0x00)
 
             // Delete approval
-            sstore(getApprovedSlot, 0x00)
+            if approvedAddress { sstore(add(ownershipSlot, 1), 0x00) }
 
             // emit Transfer(owner, address(0), id)
             log4(0, 0, 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef, owner, 0x00, id)
@@ -390,81 +372,45 @@ abstract contract ERC721Yul {
     function _safeMint(
         address to,
         uint256 id,
-        bytes memory data
+        bytes calldata data
     ) internal virtual {
         _mint(to, id);
-        _safeTransferCheck(msg.sender, address(0), to, id, data);
+        _safeTransferCheck(address(0), to, id, data);
     }
 
-    function _safeTransferCheck(address operator, address from, address to, uint256 id, bytes memory data) internal {
+    function _safeTransferCheck(address from, address to, uint256 id, bytes memory data) internal {
         assembly {
-            to := shr(96, shl(96, to))
-            from := shr(96, shl(96, from))
-            operator := shr(96, shl(96, operator))
-            
+            let bitmaskAddress := shr(96, not(0))
+
+            let ptr := mload(0x40) 
             // If `to` is a contract:
-            if extcodesize(to) {
-
-                // Load and copy free memory pointer
-                let ptr := mload(0x40)
-                let ptrCopy := ptr
-
+            if extcodesize(and(to, bitmaskAddress)) {
                 // ABI encode call `onERC721Received.selector`
                 mstore(ptr, 0x150b7a02)
-                ptr := add(ptr, 0x20)
-
-                mstore(ptr, operator)
-                ptr := add(ptr, 0x20)
-
-                mstore(ptr, from)
-                ptr := add(ptr, 0x20)
-
-                mstore(ptr, id)
-                ptr := add(ptr, 0x20)
-
-                mstore(ptr, 0x80)
-                ptr := add(ptr, 0x20)
+                mstore(add(ptr, 0x20), caller())
+                mstore(add(ptr, 0x40), and(from, bitmaskAddress))
+                mstore(add(ptr, 0x60), id)
+                mstore(add(ptr, 0x80), 0x80)
 
                 let len := mload(data)
-                data := add(data, 0x20)
-
-                mstore(ptr, len)
-                ptr := add(ptr, 0x20)
-
-                for {} sgt(len, 0x00) { len := sub(len, 0x20)} {
-                    mstore(ptr, mload(data))
-                    data := add(data, 0x20)
-                    ptr := add(ptr, 0x20)
-                }
-
+                mstore(add(ptr, 0xa0), len)
+                
+                // Call datacopy precompile 0x04 to copy `bytes memory data` into memory
+                if len { pop(staticcall(gas(), 0x04, add(data, 0x20), len, add(ptr, 0xc0), len)) }
+                
                 // Call to.onERC721Received(...)
-                let argStart := add(ptrCopy, 0x1c)
-                let success := call(gas(), to, 0, argStart, sub(ptr, argStart), 0, 0)
-
-                if success {
-                    // Copy returned function sel
-                    returndatacopy(0x1c, 0x00, returndatasize())
-
-                    // If function sel != onERC721Received.selector, revert with error TransferToNonERC721ReceiverImplementer()
-                    if iszero(eq(and(mload(0x00), 0xffffffff), 0x150b7a02)) {
-                        mstore(0x00, 0xd1a57ed6)
-                        revert(0x1c, 0x04)
+                if iszero(call(gas(), and(to, bitmaskAddress), 0, add(ptr, 0x1c), add(len, 0xa4), ptr, 0x20)) {
+                    if returndatasize() {
+                        returndatacopy(ptr, 0, returndatasize())
+                        revert(ptr, returndatasize())
                     }
-
-                    stop()
-                }
-
-                // If call is unsuccessful but has return data, revert with that data.
-                if returndatasize() {
-                    returndatacopy(ptr, 0, returndatasize())
-                    ptr := add(ptr, 0x20)
-
-                    revert(sub(ptr, 0x20), returndatasize())
                 }
 
                 // If unsuccessful call, revert with error TransferToNonERC721ReceiverImplementer()
-                mstore(0x00, 0xd1a57ed6)
-                revert(0x1c, 0x04)
+                if iszero(eq(0x150b7a02, shr(224, mload(ptr)))) {
+                    mstore(0x00, 0xd1a57ed6)
+                    revert(0x1c, 0x04)    
+                }
             }
         }
     }

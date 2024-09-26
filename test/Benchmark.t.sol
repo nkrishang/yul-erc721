@@ -50,64 +50,44 @@ contract Benchmark is Test {
         tokenSolmate = new MockERC721Solmate();
 
         contractRecipient = new ERC721Recipient();
+
+        tokenYul.mint(address(this), 10);
+        tokenSolady.mint(address(this), 10);
+        tokenSolmate.mint(address(this), 10);
     }
 
-    function test_ownerOf_yul() public {
-        vm.pauseGasMetering();
-        tokenYul.mint(address(0x123), 5);
-        vm.resumeGasMetering();
-
-        tokenYul.ownerOf(5);
+    function test_ownerOf_yul() public view {
+        tokenYul.ownerOf(10);
     }
-    function test_ownerOf_solady() public {
-        vm.pauseGasMetering();
-        tokenSolady.mint(address(0x123), 5);
-        vm.resumeGasMetering();
-
-        tokenSolady.ownerOf(5);
+    function test_ownerOf_solady() public view {
+        tokenSolady.ownerOf(10);
     }
-    function test_ownerOf_solmate() public {
-        vm.pauseGasMetering();
-        tokenSolmate.mint(address(0x123), 5);
-        vm.resumeGasMetering();
-
-        tokenSolmate.ownerOf(5);
+    function test_ownerOf_solmate() public view {
+        tokenSolmate.ownerOf(10);
     }
 
-    function test_balanceOf_yul() public {
-        vm.pauseGasMetering();
-        tokenYul.mint(address(0x123), 5);
-        vm.resumeGasMetering();
-
-        tokenYul.balanceOf(address(0x123));
+    function test_balanceOf_yul() public view {
+        tokenYul.balanceOf(address(this));
     }
 
-    function test_balanceOf_solady() public {
-        vm.pauseGasMetering();
-        tokenSolady.mint(address(0x123), 5);
-        vm.resumeGasMetering();
-
-        tokenSolady.balanceOf(address(0x123));
+    function test_balanceOf_solady() public view {
+        tokenSolady.balanceOf(address(this));
     }
 
-    function test_balanceOf_solmate() public {
-        vm.pauseGasMetering();
-        tokenSolmate.mint(address(0x123), 5);
-        vm.resumeGasMetering();
-
-        tokenSolmate.balanceOf(address(0x123));
+    function test_balanceOf_solmate() public view {
+        tokenSolmate.balanceOf(address(this));
     }
 
     function test_mint_yul() public {
-        tokenYul.mint(address(0x123), 5);
+        tokenYul.mint(address(this), 5);
     }
 
     function test_mint_solady() public {
-        tokenSolady.mint(address(0x123), 5);
+        tokenSolady.mint(address(this), 5);
     }
 
     function test_mint_solmate() public {
-        tokenSolmate.mint(address(0x123), 5);
+        tokenSolmate.mint(address(this), 5);
     }
 
     function test_safeMint_yul() public {
@@ -122,112 +102,52 @@ contract Benchmark is Test {
         tokenSolmate.safeMint(address(contractRecipient), 5);
     }
 
-    function test_burn_yul() public {
-        vm.pauseGasMetering();
-        tokenYul.mint(address(0x123), 5);
-        vm.prank(address(0x123));
-        vm.resumeGasMetering();
-
-        tokenYul.burn(5);
+    function test_burn_solady() public {
+        tokenSolady.burn(10);
     }
 
-    function test_burn_solady() public {
-        vm.pauseGasMetering();
-        tokenSolady.mint(address(0x123), 5);
-        vm.prank(address(0x123));
-        vm.resumeGasMetering();
-
-        tokenSolady.burn(5);
+    function test_burn_yul() public {
+        tokenYul.burn(10);
     }
 
     function test_burn_solmate() public {
-        vm.pauseGasMetering();
-        tokenSolmate.mint(address(0x123), 5);
-        vm.prank(address(0x123));
-        vm.resumeGasMetering();
-
-        tokenSolmate.burn(5);
+        tokenSolmate.burn(10);
     }
 
     function test_transferFrom_yul() public {
-        vm.pauseGasMetering();
-        tokenYul.mint(address(0x123), 5);
-        vm.prank(address(0x123));
-        vm.resumeGasMetering();
-
-        tokenYul.transferFrom(address(0x123), address(0x789), 5);
+        tokenYul.transferFrom(address(this), address(0x789), 10);
     }
 
     function test_transferFrom_solady() public {
-        vm.pauseGasMetering();
-        tokenSolady.mint(address(0x123), 5);
-        vm.prank(address(0x123));
-        vm.resumeGasMetering();
-
-        tokenSolady.transferFrom(address(0x123), address(0x789), 5);
+        tokenSolady.transferFrom(address(this), address(0x789), 10);
     }
 
     function test_transferFrom_solmate() public {
-        vm.pauseGasMetering();
-        tokenSolmate.mint(address(0x123), 5);
-        vm.prank(address(0x123));
-        vm.resumeGasMetering();
-
-        tokenSolmate.transferFrom(address(0x123), address(0x789), 5);
+        tokenSolmate.transferFrom(address(this), address(0x789), 10);
     }
 
     function test_safeTransferFrom_yul() public {
-        vm.pauseGasMetering();
-        tokenYul.mint(address(0x123), 5);
-        vm.prank(address(0x123));
-        vm.resumeGasMetering();
-
-        tokenYul.transferFrom(address(0x123), address(contractRecipient), 5);
+        tokenYul.safeTransferFrom(address(this), address(contractRecipient), 10);
     }
     
     function test_safeTransferFrom_solady() public {
-        vm.pauseGasMetering();
-        tokenSolady.mint(address(0x123), 5);
-        vm.prank(address(0x123));
-        vm.resumeGasMetering();
-
-        tokenSolady.transferFrom(address(0x123), address(contractRecipient), 5);
+        tokenSolady.safeTransferFrom(address(this), address(contractRecipient), 10);
     }
     
     function test_safeTransferFrom_solmate() public {
-        vm.pauseGasMetering();
-        tokenSolmate.mint(address(0x123), 5);
-        vm.prank(address(0x123));
-        vm.resumeGasMetering();
-
-        tokenSolmate.transferFrom(address(0x123), address(contractRecipient), 5);
+        tokenSolmate.safeTransferFrom(address(this), address(contractRecipient), 10);
     }
 
     function test_approve_yul() public {
-        vm.pauseGasMetering();
-        tokenYul.mint(address(0x123), 5);
-        vm.prank(address(0x123));
-        vm.resumeGasMetering();
-
-        tokenYul.approve(address(0x789), 5);
+        tokenYul.approve(address(0x789), 10);
     }
 
     function test_approve_solady() public {
-        vm.pauseGasMetering();
-        tokenSolady.mint(address(0x123), 5);
-        vm.prank(address(0x123));
-        vm.resumeGasMetering();
-
-        tokenSolady.approve(address(0x789), 5);
+        tokenSolady.approve(address(0x789), 10);
     }
 
     function test_approve_solmate() public {
-        vm.pauseGasMetering();
-        tokenSolmate.mint(address(0x123), 5);
-        vm.prank(address(0x123));
-        vm.resumeGasMetering();
-
-        tokenSolmate.approve(address(0x789), 5);
+        tokenSolmate.approve(address(0x789), 10);
     }
 
     function test_setApprovalForAll_yul() public {
