@@ -1,6 +1,6 @@
 # ERC-721 YUL implementation
 
-`src/ERC721Yul.sol` is an ERC-721 smart contract implemented almost entire inline assembly. It uses a straightforward storage layout and is gas competitive with optimized ERC-721 implementation such as solady and solmate.
+`src/ERC721Yul.sol` is an ERC-721 smart contract implemented almost entire inline assembly. It uses a straightforward storage layout and is gas competitive with optimized ERC-721 implementations such as solady and solmate.
 
 `src/ERC721.yul` is a pure YUL implementation of the same, and is also tested and benchmarked using forge.
 
@@ -20,7 +20,7 @@ The benchmark file is the `test/Benchmark.t.sol` forge test file. Actual blockch
 | setApprovalForAll | 29437  | 29974           | 29992  | 30124   |
 | transferFrom      | 37215  | 38202           | 38196  | 38695   |
 
-If you know how to improve on thsi implementation, please make a PR. I'd love to learn.
+If you know how to improve on this implementation, please make a PR. I'd love to learn.
 
 ## Usage
 
