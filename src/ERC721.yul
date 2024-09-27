@@ -48,16 +48,34 @@ object "ERC721" {
 
             // `ownerOf(uint256 id)
             case 0x6352211e {
-                let owner := sload(_ownerOfSlot(calldataload(0x04)))
-                assertOwnerNotAddressZero(owner)
-                returnValue(owner)
+                // Get owner
+                mstore(0x00, calldataload(0x04))
+                let owner := sload(keccak256(0x00, 0x20))
+
+                // If owner == address(0), revert with error TokenDoesNotExist()
+                if iszero(owner) {
+                    mstore(0x00, 0xceea21b6)
+                    revert(0x1c, 0x04)
+                }
+                
+                mstore(0x00, owner)
+                return(0x00, 0x20)
             }
 
             // `balanceOf(address owner)`
             case 0x70a08231 {
                 let owner := cleanAddress(calldataload(0x04))
-                assertOwnerNotAddressZero(owner)
-                returnValue(sload(_balanceOfSlot(owner)))
+                
+                // If owner == address(0), revert with error BalanceQueryForZeroAddress()
+                if iszero(owner) {
+                    mstore(0x00, 0x8f4eb604)
+                    revert(0x1c, 0x04)
+                }
+
+                // Return balance
+                mstore(0x00, owner)
+                mstore(0x00, sload(keccak256(0x00, 0x20)))
+                return(0x00, 0x20)
             }
         
         /*//////////////////////////////////////////////////////////////
@@ -66,12 +84,19 @@ object "ERC721" {
 
             // `getApproved(uint256 id)`
             case 0x081812fc {
-                returnValue(sload(_getApprovedSlot(calldataload(0x04))))
+                // Return approved operator
+                mstore(0x00, calldataload(0x04))
+                mstore(0x00, sload(add(keccak256(0x00, 0x20), 1)))
+                return(0x00, 0x20)
             }
 
             // `isApprovedForAll(address owner, address operator)`
             case 0xe985e9c5 {
-                returnValue(sload(_isApprovedForAllSlot(cleanAddress(calldataload(0x04)), cleanAddress(calldataload(0x24)))))
+                // Get and return approval
+                mstore(0x14, cleanAddress(calldataload(0x24)))
+                mstore(0x00, cleanAddress(calldataload(0x04)))
+                mstore(0x00, sload(keccak256(0x0c, 0x28)))
+                return(0x00, 0x20)
             }
         
         /*//////////////////////////////////////////////////////////////
@@ -82,11 +107,30 @@ object "ERC721" {
             case 0x095ea7b3 {
                 // Get owner
                 let id := calldataload(0x24)
-                let ownershipSlot := _ownerOfSlot(id)
+                mstore(0x00, id)
+                let ownershipSlot := keccak256(0x00, 0x20)
                 let owner := sload(ownershipSlot)
 
-                assertOwnerNotAddressZero(owner)
-                assertOperatorIsOwnerOrApproved(caller(), owner, ownershipSlot)
+                // If owner == address(0), revert with error TokenDoesNotExist()
+                if iszero(owner) {
+                    mstore(0x00, 0xceea21b6)
+                    revert(0x1c, 0x04)
+                }
+
+                // If not owner or approved, revert with error NotOwnerNorApproved()
+                if iszero(eq(caller(), owner)) {
+                    
+                    mstore(0x14, caller())
+                    mstore(0x00, owner)
+
+                    if iszero(sload(keccak256(0x0c, 0x28))) {
+
+                        if iszero(sload(add(ownershipSlot, 1))) {
+                            mstore(0x00, 0x4b6e7f18)
+                            revert(0x1c, 0x04)
+                        }
+                    }
+                }
 
                 // Approve spender for token
                 let spender := cleanAddress(calldataload(0x04))
@@ -100,9 +144,11 @@ object "ERC721" {
             case 0xa22cb465 {
                 let operator := cleanAddress(calldataload(0x04))
                 let approval := calldataload(0x24)
-                
+            
                 // Store approval
-                sstore(_isApprovedForAllSlot(caller(), operator), approval)
+                mstore(0x14, operator)
+                mstore(0x00, caller())
+                sstore(keccak256(0x0c, 0x28), approval)
 
                 // emit ApprovalForAll(owner, operator, approval);
                 mstore(0x00, approval)
@@ -199,7 +245,8 @@ object "ERC721" {
             // ERC165 Interface ID for ERC721 0x80ac58cd
             // ERC165 Interface ID for ERC721Metadata 0x5b5e139f
             let b := or(or(eq(interfaceId, 0x01ffc9a7), eq(interfaceId, 0x80ac58cd)), eq(interfaceId, 0x5b5e139f))
-            returnValue(b)
+            mstore(0x00, b)
+            return(0x00, 0x20)
         }
 
         /*//////////////////////////////////////////////////////////////
@@ -286,35 +333,43 @@ object "ERC721" {
         // `burn(uint256 id)
         case 0x42966c68 {
 
-            let id := calldataload(0x04)
-
             // Get owner
-            let ownershipSlot := _ownerOfSlot(id)
+            let id := calldataload(0x04)
+            mstore(0x00, id)
+            let ownershipSlot := keccak256(0x00, 0x20)
             let owner := sload(ownershipSlot)
-            
-            assertOwnerNotAddressZero(owner)
+
+            // If token has owner, revert with error TokenDoesNotExist()
+            if iszero(owner) {
+                mstore(0x00, 0xceea21b6)
+                revert(0x1c, 0x04)
+            }
 
             {
                 // If not owner or approved, revert with error NotOwnerNorApproved()
-                let approveAddress := sload(add(ownershipSlot, 1))
+                let approvedAddress := sload(add(ownershipSlot, 1))
+
                 if iszero(eq(caller(), owner)) {
+                    
+                    mstore(0x14, caller())
+                    mstore(0x00, owner)
 
-                    if iszero(approveAddress) {
-                        mstore(0x14, caller())
-                        mstore(0x00, owner)
+                    if iszero(sload(keccak256(0x0c, 0x28))) {
 
-                        if iszero(sload(keccak256(0x0c, 0x28))) {
+                        if iszero(approvedAddress) {
                             mstore(0x00, 0x4b6e7f18)
                             revert(0x1c, 0x04)
-                        }   
+                        }
                     }
                 }
+
                 // Delete approval
-                if approveAddress { sstore(add(ownershipSlot, 1), 0x00) }                    
+                if approvedAddress { sstore(add(ownershipSlot, 1), 0x00) }
             }
 
             // Decrement balance of owner at slot keccak256(concat(owner, slot(balanceOf)))
-            let balSlot := _balanceOfSlot(owner)
+            mstore(0x00, owner)
+            let balSlot := keccak256(0x00, 0x20)
             sstore(balSlot, sub(sload(balSlot), 1))
 
             // Delete ownership
@@ -330,19 +385,37 @@ object "ERC721" {
 
             function _transferFrom(from, to, id) {
                 // Get owner
-                let ownershipSlot := _ownerOfSlot(id)
+                mstore(0x00, id)
+                let ownershipSlot := keccak256(0x00, 0x20)
                 let owner := sload(ownershipSlot)
-
-                assertOwnerNotAddressZero(owner)
-                assertTransferFromCorrectOwner(from, owner)
-                assertRecipientNotAddressZero(to)
+                
+                // If owner == address(0), revert with error TokenDoesNotExist()
+                if iszero(owner) {
+                    mstore(0x00, 0xceea21b6)
+                    revert(0x1c, 0x04)
+                }
+                
+                // If from != owner, revert with error TransferFromIncorrectOwner()
+                if iszero(eq(from, owner)) {
+                    mstore(0x00, 0xa1148100)
+                    revert(0x1c, 0x04)
+                }
+                
+                // If to == address(0), revert with error TransferToZeroAddress()
+                if iszero(to) {
+                    mstore(0x00, 0xea553b34)
+                    revert(0x1c, 0x04)
+                }
 
                 // Update balances
-                let recipientBalSlot := _balanceOfSlot(to)
-                sstore(recipientBalSlot, add(sload(recipientBalSlot), 1))
+                mstore(0x00, to)
+                let recipientBal := keccak256(0x00, 0x20)
+                sstore(recipientBal, add(sload(recipientBal), 1))
                 
-                let ownerBalSlot := _balanceOfSlot(owner)
-                sstore(ownerBalSlot, sub(sload(ownerBalSlot), 1))
+                                
+                mstore(0x00, owner)
+                let ownerBal := keccak256(0x00, 0x20)
+                sstore(ownerBal, sub(sload(ownerBal), 1))
 
                 {
                     // If not owner or approved, revert with error NotOwnerNorApproved()
@@ -371,19 +444,31 @@ object "ERC721" {
             }
             
             function _mint(to, id) {
-                assertRecipientNotAddressZero(to)
-    
+                // If minting to address(0), revert with error TransferToZeroAddress()
+                if iszero(to) {
+                    mstore(0x00, 0xea553b34)
+                    revert(0x1c, 0x04)
+                }
+
                 // Get owner
-                let ownershipSlot := _ownerOfSlot(id)
-                assertOwnerDoesNotExist(sload(ownershipSlot))
-    
+                mstore(0x00, id)
+                let ownershipSlot := keccak256(0x00, 0x20)
+                let owner := sload(ownershipSlot)
+
+                // If token has owner, revert with error TokenAlreadyExists()
+                if owner {
+                    mstore(0x00, 0xc991cbb1)
+                    revert(0x1c, 0x04)
+                }
+
                 // Increment balance of `to` at slot keccak256(concat(to, slot(balanceOf)))
-                let balSlot := _balanceOfSlot(to)
+                mstore(0x00, to)
+                let balSlot := keccak256(0x00, 0x20)
                 sstore(balSlot, add(sload(balSlot), 1))
-    
+
                 // Store `to` as owner of token
                 sstore(ownershipSlot, to)
-    
+
                 // emit Transfer(address(0), to, id)
                 log4(0, 0, 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef, 0x00, to, id)
             }
@@ -398,81 +483,6 @@ object "ERC721" {
 
             function cleanAddress(addr) -> cleaned {
                 cleaned := shr(96, shl(96, addr))
-            }
-
-            function _ownerOfSlot(id) -> slot {
-                mstore(0x00, id)
-                slot := keccak256(0x00, 0x20)
-            }
-
-            function _balanceOfSlot(owner) -> slot {
-                mstore(0x00, owner)
-                slot := keccak256(0x00, 0x20)
-            }
-
-            function _getApprovedSlot(id) -> slot {
-                mstore(0x00, id)
-                slot := add(keccak256(0x00, 0x20), 1)
-            }
-
-            function _isApprovedForAllSlot(owner, operator) -> slot {
-                mstore(0x14, operator)
-                mstore(0x00, owner)
-                slot := keccak256(0x0c, 0x28)
-            }
-
-            function assertOwnerNotAddressZero(owner) {
-                // If owner == address(0), revert with error TokenDoesNotExist()
-                if iszero(owner) {
-                    mstore(0x00, 0xceea21b6)
-                    revert(0x1c, 0x04)
-                }
-            }
-
-            function assertOwnerDoesNotExist(owner) {
-                // If token has owner, revert with error TokenAlreadyExists()
-                if owner {
-                    mstore(0x00, 0xc991cbb1)
-                    revert(0x1c, 0x04)
-                }
-            }
-
-            function assertOperatorIsOwnerOrApproved(operator, owner, ownershipSlot) {
-                // If not owner or approved, revert with error NotOwnerNorApproved()
-                if iszero(eq(caller(), owner)) {
-                    
-                    mstore(0x14, caller())
-                    mstore(0x00, owner)
-
-                    if iszero(sload(keccak256(0x0c, 0x28))) {
-
-                        if iszero(sload(add(ownershipSlot, 1))) {
-                            mstore(0x00, 0x4b6e7f18)
-                            revert(0x1c, 0x04)
-                        }
-                    }
-                }
-            }
-
-            function assertTransferFromCorrectOwner(from, owner) {
-                // If from != owner, revert with error TransferFromIncorrectOwner()
-                if iszero(eq(from, owner)) {
-                    mstore(0x00, 0xa1148100)
-                    revert(0x1c, 0x04)
-                }
-            }
-
-            function assertRecipientNotAddressZero(recipient) {
-                // If to == address(0), revert with error TransferToZeroAddress()
-                if iszero(recipient) {
-                    mstore(0x00, 0xea553b34)
-                    revert(0x1c, 0x04)
-                }
-            }
-
-            function returnValue(value) {
-                mstore(0x00, value)
-                return(0x00, 0x20)
             }
         }
     }

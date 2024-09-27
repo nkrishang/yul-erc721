@@ -336,21 +336,26 @@ abstract contract ERC721 {
                 revert(0x1c, 0x04)
             }
 
-            // If not owner or approved, revert with error NotOwnerNorApproved()
-            let approvedAddress := sload(add(ownershipSlot, 1))
+            {
+                // If not owner or approved, revert with error NotOwnerNorApproved()
+                let approvedAddress := sload(add(ownershipSlot, 1))
 
-            if iszero(eq(caller(), owner)) {
-                
-                mstore(0x14, caller())
-                mstore(0x00, owner)
+                if iszero(eq(caller(), owner)) {
+                    
+                    mstore(0x14, caller())
+                    mstore(0x00, owner)
 
-                if iszero(sload(keccak256(0x0c, 0x28))) {
+                    if iszero(sload(keccak256(0x0c, 0x28))) {
 
-                    if iszero(approvedAddress) {
-                        mstore(0x00, 0x4b6e7f18)
-                        revert(0x1c, 0x04)
+                        if iszero(approvedAddress) {
+                            mstore(0x00, 0x4b6e7f18)
+                            revert(0x1c, 0x04)
+                        }
                     }
                 }
+
+                // Delete approval
+                if approvedAddress { sstore(add(ownershipSlot, 1), 0x00) }
             }
 
             // Decrement balance of owner at slot keccak256(concat(owner, slot(balanceOf)))
@@ -360,9 +365,6 @@ abstract contract ERC721 {
 
             // Delete ownership
             sstore(ownershipSlot, 0x00)
-
-            // Delete approval
-            if approvedAddress { sstore(add(ownershipSlot, 1), 0x00) }
 
             // emit Transfer(owner, address(0), id)
             log4(0, 0, 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef, owner, 0x00, id)
