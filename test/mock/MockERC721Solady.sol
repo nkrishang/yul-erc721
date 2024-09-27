@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import {ERC721YulS} from "src/ERC721YulS.sol";
-import {Brutalizer} from "./Brutalizer.sol";
+import {ERC721Solady} from "../compare/ERC721Solady.sol";
+import {Brutalizer} from "../utils/Brutalizer.sol";
 
 /// @dev WARNING! This mock is strictly intended for testing purposes only.
 /// Do NOT copy anything here into production code unless you really know what you are doing.
-contract MockERC721YulS is ERC721YulS, Brutalizer {
+contract MockERC721Solady is ERC721Solady, Brutalizer {
 
     function tokenURI(uint256 id) public view virtual override returns (string memory) {
         return string(abi.encodePacked("https://remilio.org/remilio/json/", toString(id)));
@@ -17,12 +17,14 @@ contract MockERC721YulS is ERC721YulS, Brutalizer {
     }
 
     function burn(uint256 id) public payable virtual {
+        if(!_isApprovedOrOwner(msg.sender, id)) {
+            revert NotOwnerNorApproved();
+        }
         _burn(id);
     }
 
     function safeMint(address to, uint256 id) public virtual {
-        _mint(to, id);
-        _safeTransferCheck(address(0), to, id, "");
+        _safeMint(_brutalized(to), id, "");
     }
 
     function safeMint(address to, uint256 id, bytes calldata data) public virtual {
@@ -33,7 +35,7 @@ contract MockERC721YulS is ERC721YulS, Brutalizer {
         super.approve(_brutalized(account), id);
     }
 
-    function setApprovalForAll(address operator, bool approved) public payable virtual override {
+    function setApprovalForAll(address operator, bool approved) public virtual override {
         super.setApprovalForAll(_brutalized(operator), approved);
     }
 

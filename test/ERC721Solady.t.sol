@@ -3,7 +3,7 @@ pragma solidity ^0.8.4;
 
 import "./utils/SoladyTest.sol";
 
-import {ERC721Solady, MockERC721Solady} from "./utils/MockERC721Solady.sol";
+import {ERC721Solady, MockERC721Solady} from "./mock/MockERC721Solady.sol";
 
 abstract contract ERC721TokenReceiver {
     function onERC721Received(address, address, uint256, bytes calldata)

@@ -12,7 +12,7 @@ pragma solidity >=0.8.0;
 ///        This is Solmate's ERC-721 modified to work with Solady ERC721 test cases. It does not include
 ///        auxData or extraData, or any significant designs from the Solady implementation. The contract
 ///        may contain redundancies.
-abstract contract ERC721 {
+abstract contract ERC721Solmate {
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/

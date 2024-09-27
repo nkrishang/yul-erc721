@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
-import {MockERC721YulS} from "./utils/MockERC721YulS.sol";
-import {MockERC721Solady} from "./utils/MockERC721Solady.sol";
-import {MockERC721 as MockERC721Solmate} from "./utils/MockERC721.sol";
+import {MockERC721Solady} from "./mock/MockERC721Solady.sol";
+import {MockERC721Solmate} from "./mock/MockERC721Solmate.sol";
+import {MockERC721InlineAssembly} from "./mock/MockERC721InlineAssembly.sol";
 
 abstract contract ERC721TokenReceiver {
     function onERC721Received(address, address, uint256, bytes calldata)
@@ -38,26 +38,26 @@ contract ERC721Recipient is ERC721TokenReceiver {
 }
 
 contract Benchmark is Test {
-    MockERC721YulS public tokenYul;
     MockERC721Solady public tokenSolady;
     MockERC721Solmate public tokenSolmate;
+    MockERC721InlineAssembly public tokenInlineAssembly;
 
     ERC721Recipient public contractRecipient;
 
     function setUp() public {
-        tokenYul = new MockERC721YulS();
+        tokenInlineAssembly = new MockERC721InlineAssembly();
         tokenSolady = new MockERC721Solady();
         tokenSolmate = new MockERC721Solmate();
 
         contractRecipient = new ERC721Recipient();
 
-        tokenYul.mint(address(this), 10);
+        tokenInlineAssembly.mint(address(this), 10);
         tokenSolady.mint(address(this), 10);
         tokenSolmate.mint(address(this), 10);
     }
 
     function test_ownerOf_yul() public view {
-        tokenYul.ownerOf(10);
+        tokenInlineAssembly.ownerOf(10);
     }
     function test_ownerOf_solady() public view {
         tokenSolady.ownerOf(10);
@@ -67,7 +67,7 @@ contract Benchmark is Test {
     }
 
     function test_balanceOf_yul() public view {
-        tokenYul.balanceOf(address(this));
+        tokenInlineAssembly.balanceOf(address(this));
     }
 
     function test_balanceOf_solady() public view {
@@ -79,7 +79,7 @@ contract Benchmark is Test {
     }
 
     function test_mint_yul() public {
-        tokenYul.mint(address(this), 5);
+        tokenInlineAssembly.mint(address(this), 5);
     }
 
     function test_mint_solady() public {
@@ -91,7 +91,7 @@ contract Benchmark is Test {
     }
 
     function test_safeMint_yul() public {
-        tokenYul.safeMint(address(contractRecipient), 5);
+        tokenInlineAssembly.safeMint(address(contractRecipient), 5);
     }
     
     function test_safeMint_solady() public {
@@ -107,7 +107,7 @@ contract Benchmark is Test {
     }
 
     function test_burn_yul() public {
-        tokenYul.burn(10);
+        tokenInlineAssembly.burn(10);
     }
 
     function test_burn_solmate() public {
@@ -115,7 +115,7 @@ contract Benchmark is Test {
     }
 
     function test_transferFrom_yul() public {
-        tokenYul.transferFrom(address(this), address(0x789), 10);
+        tokenInlineAssembly.transferFrom(address(this), address(0x789), 10);
     }
 
     function test_transferFrom_solady() public {
@@ -127,7 +127,7 @@ contract Benchmark is Test {
     }
 
     function test_safeTransferFrom_yul() public {
-        tokenYul.safeTransferFrom(address(this), address(contractRecipient), 10);
+        tokenInlineAssembly.safeTransferFrom(address(this), address(contractRecipient), 10);
     }
     
     function test_safeTransferFrom_solady() public {
@@ -139,7 +139,7 @@ contract Benchmark is Test {
     }
 
     function test_approve_yul() public {
-        tokenYul.approve(address(0x789), 10);
+        tokenInlineAssembly.approve(address(0x789), 10);
     }
 
     function test_approve_solady() public {
@@ -151,7 +151,7 @@ contract Benchmark is Test {
     }
 
     function test_setApprovalForAll_yul() public {
-        tokenYul.setApprovalForAll(address(0x789), true);
+        tokenInlineAssembly.setApprovalForAll(address(0x789), true);
     }
 
     function test_setApprovalForAll_solady() public {
