@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import {ERC721Yul} from "src/ERC721Yul.sol";
+import {ERC721YulS} from "src/ERC721YulS.sol";
 import {Brutalizer} from "./Brutalizer.sol";
 
 /// @dev WARNING! This mock is strictly intended for testing purposes only.
 /// Do NOT copy anything here into production code unless you really know what you are doing.
-contract MockERC721Yul is ERC721Yul, Brutalizer {
+contract MockERC721YulS is ERC721YulS, Brutalizer {
 
     function tokenURI(uint256 id) public view virtual override returns (string memory) {
         return string(abi.encodePacked("https://remilio.org/remilio/json/", toString(id)));

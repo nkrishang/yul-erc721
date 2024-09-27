@@ -3,7 +3,7 @@ pragma solidity ^0.8.4;
 
 import "./utils/SoladyTest.sol";
 
-import {MockERC721Yul} from "./utils/MockERC721Yul.sol";
+import {MockERC721YulS} from "./utils/MockERC721YulS.sol";
 
 abstract contract ERC721TokenReceiver {
     function onERC721Received(address, address, uint256, bytes calldata)
@@ -61,7 +61,7 @@ contract WrongReturnDataERC721Recipient is ERC721TokenReceiver {
 contract NonERC721Recipient {}
 
 contract ERC721YulTest is SoladyTest {
-    MockERC721Yul token;
+    MockERC721YulS token;
 
     uint256 private constant _ERC721_MASTER_SLOT_SEED = 0x7d8825530a5a2e7a << 192;
 
@@ -97,7 +97,7 @@ contract ERC721YulTest is SoladyTest {
     error TransferToNonERC721ReceiverImplementer();
 
     function setUp() public {
-        token = new MockERC721Yul();
+        token = new MockERC721YulS();
     }
 
     function _expectMintEvent(address to, uint256 id) internal {

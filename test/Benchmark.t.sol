@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
-import {MockERC721Yul} from "./utils/MockERC721Yul.sol";
+import {MockERC721YulS} from "./utils/MockERC721YulS.sol";
 import {MockERC721Solady} from "./utils/MockERC721Solady.sol";
 import {MockERC721 as MockERC721Solmate} from "./utils/MockERC721.sol";
 
@@ -38,14 +38,14 @@ contract ERC721Recipient is ERC721TokenReceiver {
 }
 
 contract Benchmark is Test {
-    MockERC721Yul public tokenYul;
+    MockERC721YulS public tokenYul;
     MockERC721Solady public tokenSolady;
     MockERC721Solmate public tokenSolmate;
 
     ERC721Recipient public contractRecipient;
 
     function setUp() public {
-        tokenYul = new MockERC721Yul();
+        tokenYul = new MockERC721YulS();
         tokenSolady = new MockERC721Solady();
         tokenSolmate = new MockERC721Solmate();
 
