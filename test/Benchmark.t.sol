@@ -2,6 +2,8 @@
 pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
+import {YulDeployer} from "./utils/YulDeployer.sol";
+
 import {MockERC721Solady} from "./mock/MockERC721Solady.sol";
 import {MockERC721Solmate} from "./mock/MockERC721Solmate.sol";
 import {MockERC721InlineAssembly} from "./mock/MockERC721InlineAssembly.sol";
@@ -38,35 +40,49 @@ contract ERC721Recipient is ERC721TokenReceiver {
 }
 
 contract Benchmark is Test {
+
+    YulDeployer yulDeployer = new YulDeployer();
+
     MockERC721Solady public tokenSolady;
     MockERC721Solmate public tokenSolmate;
+    MockERC721InlineAssembly public tokenYul;
     MockERC721InlineAssembly public tokenInlineAssembly;
+    
 
     ERC721Recipient public contractRecipient;
 
     function setUp() public {
-        tokenInlineAssembly = new MockERC721InlineAssembly();
+        
         tokenSolady = new MockERC721Solady();
         tokenSolmate = new MockERC721Solmate();
+        tokenInlineAssembly = new MockERC721InlineAssembly();
+        tokenYul = MockERC721InlineAssembly(yulDeployer.deployContract("ERC721"));
 
         contractRecipient = new ERC721Recipient();
 
         tokenInlineAssembly.mint(address(this), 10);
         tokenSolady.mint(address(this), 10);
         tokenSolmate.mint(address(this), 10);
+        tokenYul.mint(address(this), 10);
     }
 
-    function test_ownerOf_yul() public view {
+    function test_ownerOf_inlineAssembly() public view {
         tokenInlineAssembly.ownerOf(10);
     }
+
     function test_ownerOf_solady() public view {
         tokenSolady.ownerOf(10);
     }
+
     function test_ownerOf_solmate() public view {
         tokenSolmate.ownerOf(10);
     }
 
-    function test_balanceOf_yul() public view {
+    function test_ownerOf_yul() public view {
+        tokenYul.ownerOf(10);
+    }
+
+    function test_balanceOf_inlineAssembly() public view {
         tokenInlineAssembly.balanceOf(address(this));
     }
 
@@ -78,7 +94,11 @@ contract Benchmark is Test {
         tokenSolmate.balanceOf(address(this));
     }
 
-    function test_mint_yul() public {
+    function test_balanceOf_yul() public view {
+        tokenYul.balanceOf(address(this));
+    }
+
+    function test_mint_inlineAssembly() public {
         tokenInlineAssembly.mint(address(this), 5);
     }
 
@@ -90,7 +110,11 @@ contract Benchmark is Test {
         tokenSolmate.mint(address(this), 5);
     }
 
-    function test_safeMint_yul() public {
+    function test_mint_yul() public {
+        tokenYul.mint(address(this), 5);
+    }
+
+    function test_safeMint_inlineAssembly() public {
         tokenInlineAssembly.safeMint(address(contractRecipient), 5);
     }
     
@@ -102,11 +126,15 @@ contract Benchmark is Test {
         tokenSolmate.safeMint(address(contractRecipient), 5);
     }
 
+    function test_safeMint_yul() public {
+        tokenYul.safeMint(address(contractRecipient), 5);
+    }
+
     function test_burn_solady() public {
         tokenSolady.burn(10);
     }
 
-    function test_burn_yul() public {
+    function test_burn_inlineAssembly() public {
         tokenInlineAssembly.burn(10);
     }
 
@@ -114,7 +142,11 @@ contract Benchmark is Test {
         tokenSolmate.burn(10);
     }
 
-    function test_transferFrom_yul() public {
+    function test_burn_yul() public {
+        tokenYul.burn(10);
+    }
+
+    function test_transferFrom_inlineAssembly() public {
         tokenInlineAssembly.transferFrom(address(this), address(0x789), 10);
     }
 
@@ -126,7 +158,11 @@ contract Benchmark is Test {
         tokenSolmate.transferFrom(address(this), address(0x789), 10);
     }
 
-    function test_safeTransferFrom_yul() public {
+    function test_transferFrom_yul() public {
+        tokenYul.transferFrom(address(this), address(0x789), 10);
+    }
+
+    function test_safeTransferFrom_inlineAssembly() public {
         tokenInlineAssembly.safeTransferFrom(address(this), address(contractRecipient), 10);
     }
     
@@ -138,7 +174,11 @@ contract Benchmark is Test {
         tokenSolmate.safeTransferFrom(address(this), address(contractRecipient), 10);
     }
 
-    function test_approve_yul() public {
+    function test_safeTransferFrom_yul() public {
+        tokenYul.safeTransferFrom(address(this), address(contractRecipient), 10);
+    }
+
+    function test_approve_inlineAssembly() public {
         tokenInlineAssembly.approve(address(0x789), 10);
     }
 
@@ -150,14 +190,23 @@ contract Benchmark is Test {
         tokenSolmate.approve(address(0x789), 10);
     }
 
-    function test_setApprovalForAll_yul() public {
+    function test_approve_yul() public {
+        tokenYul.approve(address(0x789), 10);
+    }
+
+    function test_setApprovalForAll_inlineAssembly() public {
         tokenInlineAssembly.setApprovalForAll(address(0x789), true);
     }
 
     function test_setApprovalForAll_solady() public {
         tokenSolady.setApprovalForAll(address(0x789), true);
     }
+
     function test_setApprovalForAll_solmate() public {
         tokenSolmate.setApprovalForAll(address(0x789), true);
+    }
+
+    function test_setApprovalForAll_yul() public {
+        tokenYul.setApprovalForAll(address(0x789), true);
     }
 }

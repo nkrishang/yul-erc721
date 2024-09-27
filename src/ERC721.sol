@@ -406,7 +406,7 @@ abstract contract ERC721 {
                     }
                 }
 
-                // If unsuccessful call, revert with error TransferToNonERC721ReceiverImplementer()
+                // If call returns with unexpected data, revert with error TransferToNonERC721ReceiverImplementer()
                 if iszero(eq(0x150b7a02, shr(224, mload(ptr)))) {
                     mstore(0x00, 0xd1a57ed6)
                     revert(0x1c, 0x04)    
